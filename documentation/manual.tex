@@ -59,18 +59,28 @@ The external libraries required by this software are
 
 \section{Installation}
 
-The source code and supporting files are contained in the {\tt Wavetomo2dFrequencyInvert.tar.gz}
+It is assumed that the supporting libraries in {\tt TDTbase} and {\tt traveltime2d} are
+located under the same parent directory, e.g.
+
+\begin{itemize}
+\item ParentDirectory
+  \begin{itemize}
+  \item TDTbase
+  \item traveltime2d
+  \item TDTWavetomo2D
+  \end{itemize}
+\end{itemize}
+
+The source code and supporting files are contained in the {\tt TDTWavetomo2D.tar.gz}
 file, to extract and compile the code, use the following steps:
 
 \begin{verbatim}
-tar -xzf Wavetomo2dFrequencyInvert.tar.gz
-cd Wavetomo2dFrequencyInvert/libraries
-make
-cd ..
+tar -xzf TDTWavetomo2D.tar.gz
+cd TDTWavetomo2D
 make
 \end{verbatim}
 
-And the executables will be in the Wavetomo2DFrequencyInvert directory.
+And the executables will be in the TDTWavetomo2D directory.
 
 \section{Quick start tutorial : Single velocity map}
 
