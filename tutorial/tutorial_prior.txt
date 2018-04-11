@@ -1,0 +1,12 @@
+laplace
+0.2
+priorbirth
+depthgaussianperturb
+7
+0.020
+0.020
+0.025
+0.035
+0.050
+0.050
+0.050

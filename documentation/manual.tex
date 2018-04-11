@@ -1,0 +1,866 @@
+\documentclass[a4paper,12pt]{article}
+
+\usepackage{natbib}
+\usepackage{hyperref}
+
+%\setlength{\textwidth}{425pt}
+%\setlength{\oddsidemargin}{42pt}
+%\setlength{\evensidemargin}{-15pt}
+
+\setlength{\topmargin}{-15pt}
+
+\begin{document}
+
+\title{Wavetomo2D User Manual}
+\author{Rhys Hawkins}
+\date{April 2018}
+
+\maketitle
+
+\tableofcontents
+
+\section{Introduction}
+
+This software uses a Bayesian Trans-dimensional Tree\citep{Hawkins:2015:A} approach with a
+wavelet parameterisation for the inversion of 2D surface wave
+propagation in a rectangular region of the Earth. The target
+application is Ambient noise tomography. It can perform both linear
+great circle path inversions and fully non-linear inversions using an
+inbuilt fast marching ray tracing code.
+
+The software allows both hierarchical error estimation where there are
+uncertainties in the error level on input observations and
+hierarchical prior width. These two abilities combined allow the error
+level and prior to be solved for as part of the inversion, resulting
+in a more automated inversion.
+
+Included is a parallel version that allows any combination of parallel
+chains, parallel forward model evaluation and Parallel
+Tempering\citep{Sambridge:2014:A}.
+
+This software was developed by Rhys Hawkins as part of research leading
+towards a PhD\citep{Hawkins:2018:A} at the Australian National University
+and is Copyright 2014 - 2018 Rhys Hawkins and released under a GPL v3 Licence.
+
+\section{Prerequisites}
+
+It assumed that the software will be run on a Unix like system. This
+software was developed and tested on Linux. The software requires a
+recent GNU c++ compiler as some of the libraries use C++ templates
+which are not compatible with older compilers.
+
+The external libraries required by this software are
+
+\begin{description}
+\item[GSL] The GNU scientific library (2.4)
+\item[GMP] The GNU arbitrary precision library (6.1)
+\item[OpenMPI] Version 1.6 and 2.1 have been used.
+\end{description}
+
+\section{Installation}
+
+The source code and supporting files are contained in the {\tt Wavetomo2dFrequencyInvert.tar.gz}
+file, to extract and compile the code, use the following steps:
+
+\begin{verbatim}
+tar -xzf Wavetomo2dFrequencyInvert.tar.gz
+cd Wavetomo2dFrequencyInvert/libraries
+make
+cd ..
+make
+\end{verbatim}
+
+And the executables will be in the Wavetomo2DFrequencyInvert directory.
+
+\section{Quick start tutorial : Single velocity map}
+
+This section describes a simple walkthrough of running the code on
+a synthetic data. The synthetic data is generated on a simple
+model using a coarse checker board model with 16 stations regularly
+spaced in a grid fashion.
+
+The files for this inversion are located in the tutorial subdirectory.
+
+\subsection{Preparing the input data file}
+
+This part of tutorial is designed to demonstrate how to convert your
+own data into the file format required for inversion. It is assumed
+that the observations consist of a set of stations with interstation
+travel times or observed velocities between selected station
+pairs. Additionally, the great circle path distance is required between
+stations as the path average velocity is used.
+
+There is a python script available for this in the {\tt scripts}
+subdirectory to convert a simple list of stations and list of interstation
+path average velocities into the correct format for inversion. This
+is the recommended method.
+
+The list of stations file consists of a alphanumeric station code
+followed by longitude and latitude coordinates on each line separated
+by spaces, for example
+
+\begin{verbatim}
+XXX000    -7.500000000    -7.500000000
+XXX001    -2.500000000    -7.500000000
+XXX002     2.500000000    -7.500000000
+\end{verbatim}
+
+For the list of interstation observations, the file format is
+station A code, station B code, then the interstation distance in
+kilometres, the path average velocity in kilometres per second
+and the uncertainty in the velocity. For example
+
+\begin{verbatim}
+XXX000 XXX001   551.215211031     3.111513582     0.100000000
+XXX000 XXX002  1102.412475647     2.764755153     0.100000000
+\end{verbatim}
+
+The example two tutorial files are called {\tt tutorial\_stations.txt}
+and {\tt tutorial\_observations.txt}.
+
+These two files can be converted into an input file for inversion
+using the script {\tt convertsingleobservations.py}, for example
+running from the tutorial directory
+
+\begin{verbatim}
+python2 ../scripts/convertsingleobservations.py \
+  -s tutorial_stations.txt \
+  -v tutorial_observations.txt \
+  -o tutorial_data.txt
+\end{verbatim}
+
+where the output is placed into {\tt tutorial\_data.txt}. The script is
+a python version 2 script ({\tt python2} may need to be replaced with {\tt python} or {\tt python-2.7}
+depending on your system.
+
+Using this script is the recommended way of constructing an input file
+for the inversion of a single velocity map. Alternatively you can
+construct the input file using the description in Section \ref{sec:fileformat}.
+
+\subsection{Creating a prior/proposal file}
+
+The Trans-dimensional tree approach with a wavelet parameterisation adds and removes
+wavelet coeffiecents to a model to represent an image. The wavelet coefficients are
+by construction organised in a hierarchy from coarse to fine length scale. This
+means the prior specification is difficult to tune. The recommended and simplest
+approach to specification of the prior is to use either a fixed or hierarchical
+Laplacian prior as this gives generally good performance and is far simpler to
+specify.
+
+The prior and proposals are specified in a single text file which we give
+an example below (taken from {\tt tutorial/tutorial\_prior.txt})
+
+\begin{verbatim}
+laplace
+0.1
+priorbirth
+depthgaussianperturb
+7
+0.020
+0.020
+0.025
+0.035
+0.050
+0.050
+0.050
+\end{verbatim}
+
+The first two lines specify a Laplacian prior with 0.2 width (similar to standard
+deviation). This 0.2 value may need to be adjusted if a fixed Laplacian prior is
+used in the inversion and birth/death acceptance is poor.
+
+The next line specifies how birth/death proposals are performed, it is
+suggested that this is always left as {\tt priorbirth} meaning new
+wavelet coefficients are sampled from the prior.
+
+The rest of the file specifies the proposal used for change of value
+proposals for wavelet coefficients. The example here, {\tt
+  depthgaussianperturb}, means that each scale length of wavelet
+coefficients is perturbed with a Gaussian proposal with independently
+specified standard deviation. In this example we have specified 7
+levels, however if the wavelet model has more than 7 levels, it uses
+the last level specified for higher levels so this specification
+doesn't need to match the size of the wavelet model.
+
+For tuning the acceptance rates of an inversion, this set of standard
+deviations may need to adjusted to attempt to achieve an acceptance
+rate between 20 and 50 percent. This is most important for the longer
+scale length features and we will discuss the diagnostics in Section
+\ref{sec:tutoriallinearized}.
+
+This example file is a good starting point for ambient noise
+tomography problems where the anomalies are of the order of 3.0km/s
+$\pm$ 1.0km/s. For larger scale anomalies, the width of the Laplacian
+prior might need to be tuned as well as the standard deviations of the
+Gaussian perturbations.
+
+\subsection{Linearized inversion}
+\label{sec:tutoriallinearized}
+
+\subsubsection{Introduction}
+
+Once we have our input data file and a prior file, we can perform an
+inversion. This software is structured to store the entire Markov
+chain in a binary file from which results can be obtained using
+post processing commands.
+
+The command to do a single velocity map inversion is {\tt wavetomo2dfrequencysliceinvert}
+(a single velocity map is known as a slice in this code). The
+two main post processing commands for the single velocity inversions
+are {\tt postprocess\_slice\_likelihood} and {\tt postprocess\_slice\_mean}.
+
+The common pattern to running an inversion will be of the form
+
+\begin{verbatim}
+mkdir results_<run description>
+wavetomo2dfrequencysliceinvert \
+  -i <my data> \
+  -M <my prior> \
+  -o results_<run description>/  \
+  ...
+postprocess_slice_mean \
+  -i results_<run description>/ch.dat \
+  -o results_<run description>/mean.txt \
+  ...
+\end{verbatim}
+
+where the ellipsis represent other options.
+
+\subsubsection{Inversion}
+
+Linearized inversions are very useful obtain a relatively quick inversion of a dataset.
+On a reasonable computer, the inversion described here takes less than a minute to run.
+From the {\tt tutorial} subdirectory, we can perform a linearized inversion with the
+following set of commands where the options will be described in detail below
+
+\begin{verbatim}
+mkdir -p results_linearized
+../wavetomo2dfrequencysliceinvert \
+  -i tutorial_data.txt \
+  -M tutorial_prior.txt \
+  -o results_linearized/ \
+  -s 0 \
+  -x 5 -y 5 \
+  -u 2 \
+  -n -10.0 -N 10.0 \
+  -a -10.0 -A 10.0 \
+  -w 4 \
+  -l 1.0 \
+  -H 0.1 \
+  -L 0.2 \
+  -t 100000 \
+  -k 100 \
+  -E
+\end{verbatim}
+
+The first two input parameters are the input data file and prior/proposal file respectively.
+The {\tt -o} option specifies an output prefix which must include a trailing ``/'' if this
+is an output directory. This will write all output files to the {\tt results\_linearized}
+directory.
+
+The {\tt -s 0} specifies the slice in the input data file to use. It is not needed here but
+if the input file contains data for more than one frequency, then this option specifies
+the index of the frequency to perform the inversion on.
+
+The next three parameters specify the grid resolution. As wavelet models need to be powers
+of two, the width, {\tt -x} and height {\tt -y} of the model are specified in powers of
+two. Hence ``{\tt -x 5 -y 5}'' means that the wavelet model is $2^5$ by $2^5$ or a 32 by 32
+image. The width and height can be different although it is recommended that long thin
+models where width and height are significantly different be avoided. The {\tt -u 2} option
+specifies that the wavelet image is upscaled twice and the forward model computed on a
+128 by 128 grid, i.e. 32 $\times$ 2 $\times$ 2 = 128.
+
+The next two lines specify the longitude and latitude range of the domain. This must
+encompass all the stations in the input file otherwise an error will occur. The
+{\tt -n -10.0 -N 10.0} is the longitude range and {\tt -a -10.0 -A 10.0} is the latitude
+range.
+
+The {\tt -w 4} option specifies the wavelet basis to use. Allowed values are from 0
+to 4 with 0 representing a blocky image to 4 representing a smooth image. A value of
+4 is recommended for ambient noise tomography inversions.
+
+The {\tt -l 1.0} and {\tt -H 0.1} control the hierarchical error estimation in the inversion.
+In this software the error standard deviation used in the likelihood function is a
+scaling of the data errors within the input data file, i.e.
+
+\begin{equation}
+  \sigma = \lambda \sigma_d
+\end{equation}
+
+where $\lambda$ is the hierarchical error scale term (inverted for
+during inversion) and $\sigma_d$ is the data error in the input
+file. The {\tt -l 1.0} specifies the initial scaling term, and the
+{\tt -H 0.1} specifies the standard deviation of the Gaussian
+perturbations used to invert for the scaling term. If the {\tt -H}
+option isn't specified, then a fixed scaling term is used throughout
+the inversion.
+
+The {\tt -L 0.2} controls the hierarchical (sometimes hyper) prior estimation
+on the inversion. This option specifies the standard deviation of prior
+width change proposals. If this option is not specified, the prior is fixed
+at the value specified in the prior/proposal file. The recommended
+setting for inversion is a Laplacian prior with the hierarchical prior
+enabled.
+
+The {\tt -t 100000} specifies the inversion runs for 100000 iterations.
+Burnin and thinning is controlled in the post processing steps than follow.
+
+The {\tt -k 100} specifies the upper limit on the number of wavelet
+coefficients, i.e. the prior on the number of wavelet coefficients in the
+model is between 1 and 100 in this case.
+
+Lastly the {\tt -E} switch specifies to use the linearized forward model.
+By default the code uses a fast-marching forward model that while more accurately
+represent physical propagation is far slower to run.
+
+\subsubsection{Diagnostics}
+
+During inversion, diagnostics are printed by default every 1000 iterations
+to monitor the progress of the inversion, e.g.
+
+\begin{verbatim}
+  9000: 104.032548 25 dc 0.034582 lambda 1.321463:
+BirthSlice:    453  59.161:  0.000   2.326  27.273  40.000  62.319  78.462 
+DeathSlice:    457  53.392:  0.000   0.000  14.286  25.397  41.667  87.647 
+ValueSlice:   8090  79.703: 45.707  56.197  77.404  81.414  88.985  92.077
+HierarchicalSlice   1715/  3000  57.167
+HierarchicalPriorSlice   2614/  3000  87.133
+\end{verbatim}
+
+The first line gives the iteration number (9000), the negative log likelihood
+without the normalization or the misfit (104.03), the number of wavelet
+coefficients (25) and the hierarchical scaling term lambda (1.32). The dc
+component represents the current model difference from the mean
+path average velocity of the observations.
+
+The next three lines give the acceptance rates of the birth, death and
+value proposals. The first integer value (i.e. 453,457,8090) is the
+number of proposals.  The next column is the overall acceptance
+rate. Following the ``:'' is the acceptance rate for each level or
+increasing scale length from left to right of the wavelet
+coefficients. Recall that the wavelet model was specified with {\tt -x
+  5 -y 5} which means that we have levels from 0 .. 5 or 6 levels.
+If the acceptance rates deviate significantly from around 20 to 50
+percent, particularly for the first 3 levels, then the proposal
+widths in the prior/proposal file should be tuned to achieve a
+more optimal acceptance. As a general rule, increasing the
+proposal width decreases the acceptance rate and vice-versa.
+
+The last two lines give the acceptance rate for the hierarchical error
+scaling parameter and the hierarchical prior width as accepted
+count/proposed count and as a percentage.
+
+\subsubsection{Residuals}
+
+The output file {\tt residuals.txt} contains the mean residuals from the
+ensemble for each path. An example of this file is shown below and
+it consists of the two station codes, the reported interstation
+distance, the mean residual for the velocity, the observed apparent velocity,
+the mean residual normalized by the error level, the travel time residual
+and lastly the observed travel time.
+
+\begin{flushleft}
+  \tiny
+\begin{verbatim}
+XXX000 XXX001   551.215211031     0.134494871     3.111513582     1.140492187    -7.340160687   177.153400268
+XXX000 XXX002  1102.412475647    -0.069415889     2.764755153    -0.564549664    10.269112161   398.737831974
+XXX000 XXX003  1653.573577505    -0.060978190     2.820260465    -0.494239491    12.957246043   586.319454542
+XXX000 XXX004   555.974633223     0.073099750     3.087768688     0.616064773    -4.164085973   180.057086330
+XXX000 XXX005   784.644432028    -0.017511978     3.013106539    -0.153958650     1.522336176   260.410450766
+XXX000 XXX006  1239.082737857     0.086273806     3.134845550     0.709897628   -10.586594950   395.261175740
+XXX000 XXX007  1751.579412159    -0.027640325     2.993994424    -0.236350209     5.451286405   585.030953337
+\end{verbatim}
+\end{flushleft}
+
+This file can be used to check individual paths for outliers. For example, if a travel time residual
+is large relative to the observed travel time, i.e. column 7 relative to column 8, then this observation
+may be an outlier. The same applies for column 4 relative to column 5. The normalized residuals, when
+plotted as a histogram should approximate a Gaussian distribution with a standard deviation of one.
+
+A cautionary note here is that these residuals are average over the entire simulation
+and if early parts of the Markov chain are unconverged, these residuals may be over-estimates.
+
+\subsubsection{Post processing}
+
+The inversion above outputs the full Markov chain of the inversion plus
+some other diagnostic files. The chain is stored in the binary
+{\tt ch.dat} file. To extract ensemble mean for example, we need
+to run a post processing command such as 
+
+
+\begin{verbatim}
+../postprocess_slice_mean -i results_linearized/ch.dat \
+  -Z results_linearized/zoffset.txt \
+  -o results_linearized/mean.txt \
+  -D results_linearized/stddev.txt \
+  -s 50000 \
+  -t 10 \
+  -x 5 -y 5 -w 4
+\end{verbatim}
+
+The {\tt -i results\_linearized/ch.dat} specifies the chain history
+to process. Wavelet models are stored as deviations from the mean
+of the path average velocity observations and this offset is saved
+to a z-offset file. We need to specify this when obtaining
+mean models with the {\tt -Z results\_linearized/zoffset.txt} option.
+
+The post processing can output different models and statistics from
+the chain history, but in this example we request the mean
+and standard deviation.
+
+The {\tt -s 50000} option specifies that the first 50000 iterations are
+skipped or thrown out as burnin samples. {\tt -t 10} says to only
+use every 10th iteration to compute the mean model. Constructing mean
+models needs to perform an inverse wavelet transform on each
+model and can be quite slow for large dimension models. Using {\tt -t 10}
+or larger can be used to give a quicker more approximate answer.
+
+Lastly the dimension of the wavelet model and wavelet basis must be
+set with {\tt -x 5 -y 5 -w 4} and must match the dimensions specified
+in the inversion.
+
+The output text file is a simple grid of numbers in text format that can
+be plotted by many different plotting programs of your choice. A snippet
+of code to quickly plot these using python is shown below.
+
+\begin{verbatim}
+import numpy
+import matplotlib.pyplot as P
+
+mean = numpy.loadtxt('results_linearized/mean.txt')
+fig, ax = P.subplots()
+ax.imshow(mean, vmin = 2.5, vmax = 3.5, cmap = 'RdBu')
+P.show()
+\end{verbatim}
+
+For other diagnostic outputs that are used for convergence monitoring,
+the tool {\tt postprocess\_slice\_likelihood} can be used. An example
+usage is shown below
+
+\begin{verbatim}
+../postprocess_slice_likelihood -i results_linearized/ch.dat \
+  -o results_linearized/likelihood.txt \
+  -H results_linearized/hierarchical.txt \
+  -L results_linearized/prior.txt \
+  -K results_linearized/khistory.txt \
+  -t 100
+\end{verbatim}
+
+The various output files above can be used to monitor convergence of
+the Markov chain. When chains are converged, a qualitative guide is
+that all of the above history plots appear ``flat'' or sample about a
+single value. For more quantitative metrics, multiple chains can be
+run and the ``r'' statistic computed between
+chains\citep{Hawkins:2017:A}.
+
+\subsection{Non-linear inversion}
+
+\subsubsection{Introduction}
+
+In the previous section the basics of the use of the software was
+demonstrated in a linearized inversion. The benefits of a linearized
+inversion is that the forward model is very quick to compute with the downside
+being that it approximates the physics of surface wave propagation between
+stations. Incorporated into this software is an integrated Fast Marching
+option for updating ray paths at each iteration. This increases the
+computational time dramatically but can result in improved recovery of
+structure.
+
+\subsubsection{Inversion}
+
+A recommendation here is to use a first linearized inversion to converge
+the solution quickly, then collect statistical information from
+the the non-linear solution. To start from the previous linearized
+solution, and run a non-linear inversion, the command is shown below.
+
+\begin{verbatim}
+mkdir -p results_nonlinear
+../wavetomo2dfrequencysliceinvert \
+  -i tutorial_data.txt \
+  -I results_linearized/final_model.txt \
+  -M tutorial_prior.txt \
+  -o results_nonlinear/ \
+  -s 0 \
+  -x 5 -y 5 \
+  -u 2 \
+  -n -10.0 -N 10.0 \
+  -a -10.0 -A 10.0 \
+  -w 4 \
+  -l 1.0 \
+  -H 0.1 \
+  -L 0.2 \
+  -t 1000 \
+  -v 10 \
+  -k 100 \
+\end{verbatim}
+
+Most of the options remain the same. The {\tt -I
+  results\_linearized/final\_model.txt} option is used to start the
+inversion from the previous linearized inversion.  Missing is the
+{\tt -E} switch which is used to enable the linearized forward model.
+Lastly, due to the increased computational time, the number of
+iterations is reduced to 1000 and the rate of status updates is
+increased to every 10 iterations ({\tt -t 1000 -v 10}).
+
+\subsubsection{Diagnostics and Post-processing}
+
+Both the diagnostics and post processing are exactly the same for
+the linear and non-linear inversion schemes.
+
+\subsection{Parallel likelihood/chains/tempering inversion}
+
+\subsubsection{Introduction}
+
+For the tutorial dataset, it would be sufficient to invert this on a
+desktop machine but for larger datasets, more thorough sampling may be
+required or larger computation. The Parallel tempering version of the
+code, {\tt wavetomo2dfrequencysliceinvert\_pt}, enables this on both
+multi-processor desktops and int supercomputer environments.
+
+This version uses MPI for parallel processing and the allocation
+of processors is controlled by three parameters. We show a full
+example command line below but here we show the three parameters
+with other parameters removed for now.
+
+\begin{verbatim}
+mpirun -np 12 ../wavetomo2dfrequencysliceinvert_pt 
+  ...
+  -c 2 \
+  -T 3 \
+  ...
+\end{verbatim}
+
+The first parameter is the total number of processors to run
+the application with and this is specified with the {\tt mpirun}
+command as per usual.
+
+The next parameter is the number of parallel chains run at the
+same time. In the example above, we are running 2 parallel chains
+at each temperature. Lastly, for Parallel Tempering, we
+specify the number of temperature steps which in the example above
+is 3. Parallel tempering can be disabled by set the number of
+temperatures to 1, i.e. {\tt -T 1}.
+
+The number of chains times the number of temperatures must be an
+integer factor of the total number of processors. The formula
+to remember is
+
+\begin{equation}
+  N_{\mathrm{processors}} = N_{\mathrm{chains}} \times
+  N_{\mathrm{temperatures}} \times N_{\mathrm{processors\; per\; chain}}
+\end{equation}
+
+where $N_{\mathrm{processors}}$ is specified with the {\tt -np} option
+for {\tt mpirun}, $N_{\mathrm{chains}}$ is specified with the {\tt -c}
+option and $N_{\mathrm{temperatures}}$ with the {\tt -T}.  The number
+of processors chain, $N_{\mathrm{processors\; per\; chain}}$ is then
+defined implicitly and inbuilt into the software is the ability to
+spread the forward model calculation across multiple processors to
+increase the speed of the inversion. For example, running the previous
+inversions again using the parallel version, we could use a command
+line such as
+
+\begin{verbatim}
+mpirun -np 2 ../wavetomo2dfrequencysliceinvert_pt 
+  ...
+  -c 1 \
+  -T 1 \
+  ...
+\end{verbatim}
+
+to achieve an approximately two times speed up over the
+non-parallel version, {\tt wavetomo2dfrequencysliceinvert}.
+
+\subsubsection{Inversion}
+
+Finally a full example of running an inversion with Parallel tempering and
+parallel chains, analogous to the first linearized inversion is
+
+\begin{verbatim}
+mkdir -p results_parallel_linear
+mpirun -np 12 ../wavetomo2dfrequencysliceinvert_pt \
+  -i ../tutorial_data.txt \
+  -M tutorial_prior.txt \
+  -o results_parallel_linear/ \
+  -s 0 \
+  -x 5 -y 5 \
+  -u 2 \
+  -n -10.0 -N 10.0 \
+  -a -10.0 -A 10.0 \
+  -w 4 \
+  -t 100000 \
+  -v 10000 \
+  -l 1.0 \
+  -k 100 \
+  -H 0.1 \
+  -L 0.2 \
+  -E \
+  -c 2 \
+  -T 3 \
+  -m 5.0 \
+  -e 10  
+\end{verbatim}
+
+If the desktop machine or machine you're testing on has fewer than 12 cores, then
+the above will run slowly. In this case it may be worth either reducing the
+number of steps, or reducing the number of processors/temperatures/chains.
+
+Most of the details remain the same and the {\tt -c} and {\tt -T} parameters have
+already been explained. The {\tt -m 5.0} sets the maximum temperature for the
+tempered chains to 5 and temperatures will be logarithmically spaced between 1
+and this maximum temperature. Larger temperatures will reduce the acceptance
+rates of parallel tempering exchange swaps and vice-versa. The {\tt -e 10}
+sets the rate of parallel tempering exchange attempts to one every 10 iterations.
+
+\subsubsection{Diagnostics}
+
+When running the above command, there is no output as parallel output is
+written to log files. It is possible to monitor the progress of the inversion
+with either
+
+\begin{verbatim}
+tail results_parallel_linear/log.txt-000
+\end{verbatim}
+
+or
+
+\begin{verbatim}
+tail -f results_parallel_linear/log.txt-000
+\end{verbatim}
+
+for continuous logging. For each process there is a log file indexed by processor
+(i.e. MPI rank).
+
+
+\subsubsection{Post processing}
+
+In the {\tt results\_parallel\_lienar} subdirectory, rather than
+a single {\tt ch.dat} file there will be a number of them with
+three digit indices. These are numbered in order of ascending
+temperature so that for the preceding example, {\tt ch.dat-000}
+and {\tt ch.dat-001} will be for temperature 1 and
+{\tt ch.dat-004} and {\tt ch.dat-005} will be for temperature
+5 with the other two at an intermediate temperature.
+
+It is possible to post process individual {\tt ch.dat-???} files
+with the {\tt postprocess\_slice\_mean} program as before, but
+for parallel chains there is an MPI version and it is run as
+follows
+
+\begin{verbatim}
+mpirun -np 2 \
+  ../postprocess_slice_mean_mpi \
+  -i results_parallel_linear/ch.dat \
+  -Z results_parallel_linear/zoffset.txt \
+  -o results_parallel_linear/mean.txt \
+  -D results_parallel_linear/stddev.txt \
+  -s 50000 -t 5 \
+  -x 5 -y 5 -w 4
+\end{verbatim}
+
+This is almost exactly the same as the previous single processor version
+although we need to use {\tt mpirun} with the same number of processes
+as the number of chains in our inversion. Rather than specifying the
+{\tt ch.dat-???} files directly, the input ({\tt -i} parameter)
+specifies the chain history prefix and the program attaches the
+appropriate suffixes, e.g.  {\tt -000}, {\tt -001}, etc.
+
+This program computes the means and standard deviations across chains
+producing single mean and standard deviation files.
+
+For the other diagnostics of the inversion obtained through post
+processing, i.e.  the likelihood, hierarchical error, hierarchical
+prior and k history, these need to be processed per chain history file
+with the single processor program as averaging them makes little sense. For
+example
+
+\begin{verbatim}
+../postprocess_slice_likelihood -i results_parallel_linear/ch.dat-000 \
+  -o results_parallel_linear/likelihood.txt-000 \
+  -H results_parallel_linear/hierarchical.txt-000 \
+  -L results_parallel_linear/prior.txt-000 \
+  -K results_parallel_linear/khistory.txt-000 \
+  -t 100
+\end{verbatim}
+
+and the same can be repeated for other chain history files.
+
+\subsubsection{Parallel Restarting}
+
+If we wished to use the previous parallel linear inversion to seed a
+parallel non-linear inversion, the command to use is similar to the
+single processor case except the directory is specified as the
+input rather than directly specifying the {\tt final\_model.txt}
+file, i.e.
+
+\begin{verbatim}
+mkdir -p results_parallel_nonlinear
+mpirun -np 12 ../../wavetomo2dfrequencysliceinvert_pt \
+  -i tutorial_data.txt \
+  -M tutorial_prior.txt \
+  -I results_parallel_linear/ \
+  -o results_parallel_nonlinear/ \
+  -s 0 \
+  -x 5 -y 5 \
+  -u 2 \
+  -n -10.0 -N 10.0 \
+  -a -10.0 -A 10.0 \
+  -w 4 \
+  -t 10000 \
+  -v 1000 \
+  -l 1.0 \
+  -k 100 \
+  -H 0.1 \
+  -L 0.2 \
+  -c 2 -T 3 -m 5.0 -e 10
+\end{verbatim}
+
+where {\tt -I results\_parallel\_linear/} is the option specifying the
+directory to load {\tt final\_model.txt-???} from.
+
+\subsection{Summary}
+
+This tutorial was designed to enable a practioner or user of this
+software to quickly understand its basic usage. The general use of
+this software follows a pattern of
+
+\begin{enumerate}
+\item Run test single processor inversions with the linearized forward
+  model on a local desktop/laptop to tune the proposals etc.
+\item Run a parallel linear inversion on a cluster computer to obtain
+  an approximate inversion.
+\item Run a final parallel non-linear inversion on a cluster computer
+  starting from the previous approximate inversion to obtain a final inversion.
+\end{enumerate}
+
+Many cluster computing environments have queuing systems with job
+time limits. In this case, some short initial runs of a small number of
+iterations may need to be run to gauge an estimated number of iterations
+that can be performed within time limits.
+
+\section{Individual Program References}
+
+\subsection{wavetomo2dfrequencysliceinvert}
+
+\subsection{wavetomo2dfrequencysliceinvert\_pt}
+
+\subsection{postprocess\_slice\_mean}
+
+\subsection{postprocess\_slice\_likelihood}
+
+\appendix
+
+\section{Data file format}
+\label{sec:fileformat}
+
+The input file format is intended to encapsulate all observations in
+an ambient noise tomography problem across a band of frequencies. The
+format consists of four sections, a list of stations, a list of
+frequencies, a list of ray paths to compute and finally the
+interstation observations.  In the following subsections we describe
+these four parts and develop a simple three station example. The
+complete file is shown at the end.
+
+\subsection{Station list}
+
+The station list consists of a single line with an integer indicating
+the number of stations, followed by each station listed on a separate
+line with its short code, longitude and latitude. An example follows:
+
+\begin{verbatim}
+3
+STA -5.0 -5.0
+STB 0.0 5.0
+STC 5.0 -5.0
+\end{verbatim}
+
+\section{Frequency list}
+
+For single frequency inversions, this section is fairly arbitrary, but
+the format is a single line with an integer indication the number of
+frequencies, followed by the frequency in Hertz. The frequencies
+should be in order. An example of this section, for a single frequency
+inversion follows:
+
+\begin{verbatim}
+1
+0.10
+\end{verbatim}
+
+This states that there is only a single frequency of 0.10 Hz (10s period).
+
+\section{Ray paths}
+
+This section describes the ray paths that need to be computed for the
+inversion. Due to reciprocity, the fast marching method only needs to
+compute a travel time field for some stations. For example, in the
+three station example, computing the travel time field for station A
+allows the evaluation of travel times between station A and stations B
+and C.  Hence for the three stations, we only need to perform two
+travel time field calculations.  The format for this is a single line
+with an integer indicating the number of travel time field
+calculations, then for each of these the line consists of the station
+code where the travel time field calculation starts from, followed by
+a number of receiving stations, then a list of the receiving station
+codes. For the three station example, this would look like:
+
+\begin{verbatim}
+2
+STA 2 STB STC
+STB 1 STC
+\end{verbatim}
+
+This states that the forward model first needs to compute a travel
+time field starting from STA and compute travel times to STB and STC,
+and next compute a travel time field starting from STB and compute the
+travel time to STC.
+
+\section{Observations}
+
+The last section are the observations. The format for this is a single line with an
+integer indicating the number of interstation observations. Then for each observation,
+the first line consists of the source station code, receiving station code, and interstation
+distance in kilometres. This is followed by observations for each frequency of phase velocity
+(or group). In the example, and a common usage pattern of this software where single frequencies
+are inverted, there is only a singe line of observations. The observation line consists of three velocity
+values of which only the first is currently used, followed by the error on the velocity. For example:
+
+\begin{verbatim}
+3
+STA STB 100.0
+3.0 3.0 3.0 0.1
+STA STC 100.0
+2.9 2.9 2.9 0.1
+STB STC 100.0
+2.8 2.8 2.8 0.1
+\end{verbatim}
+
+Here the velocity between STA and STB is 3.0 km/s with an error of 0.1 km/s.
+
+\subsection{A complete example}
+
+The complete file developed during the preceding sections is shown below:
+
+\begin{verbatim}
+3
+STA -5.0 -5.0
+STB 0.0 5.0
+STC 5.0 -5.0
+1
+0.10
+2
+STA 2 STB STC
+STB 1 STC
+3
+STA STB 100.0
+3.0 3.0 3.0 0.1
+STA STC 100.0
+2.9 2.9 2.9 0.1
+STB STC 100.0
+2.8 2.8 2.8 0.1
+\end{verbatim}
+
+\bibliography{bibliography}
+\bibliographystyle{plainnat}
+
+\end{document}
