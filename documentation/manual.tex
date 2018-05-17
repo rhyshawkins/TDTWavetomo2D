@@ -71,8 +71,17 @@ located under the same parent directory, e.g.
   \end{itemize}
 \end{itemize}
 
-The source code and supporting files are contained in the {\tt TDTWavetomo2D.tar.gz}
-file, to extract and compile the code, use the following steps:
+For the supporting libraries, first extract and compile them:
+
+\begin{verbatim}
+tar -xzf TDTbase.tar.gz
+make -C TDTbase
+tar -xzf traveltime2d.tar.gz
+make -C traveltime2d
+\end{verbatim}
+
+Then for the Wavetomo application in the {\tt TDTWavetomo2D.tar.gz}
+file, extract and compile the code using the following steps:
 
 \begin{verbatim}
 tar -xzf TDTWavetomo2D.tar.gz

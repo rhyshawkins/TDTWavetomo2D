@@ -48,8 +48,6 @@ extern "C" {
 #include "generic_lift.h"
 };
 
-#include "coordinate.hpp"
-
 #include "rng.hpp"
 #include "hierarchicalmodel.hpp"
 #include "wavetomo2dobservations.hpp"
