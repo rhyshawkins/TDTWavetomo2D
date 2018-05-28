@@ -879,6 +879,63 @@ STB STC 100.0
 2.8 2.8 2.8 0.1
 \end{verbatim}
 
+\section{Compiling Notes}
+
+\subsection{ENS Lyon geodcalctb}
+
+This small cluster uses PBS and the GNU compilers.
+
+\begin{verbatim}
+module load mpi/openmpi-x86_64
+\end{verbatim}
+
+Example compilation follows:
+
+\begin{verbatim}
+ssh <username>@geodcalctb
+module load mpi/openmpi-x86_64
+cd software
+tar -xzf <path>/TDTbase.tar.gz
+make -C TDTbase
+tar -xzf <path>/traveltime2d.tar.gz
+make -C traveltime2d
+tar -xzf <path>/TDTWavetomo2D.tar.gz
+make -C TDTWavetomo2D
+\end{verbatim}
+
+
+\subsection{ENS Lyon Transcale}
+
+This cluster use SLURM and Intel compilers. Compilation needs to be
+done using an interactive slurm shell, accessible by the
+default alias {\tt inter}. The makefiles for this software use
+{\tt CC} and {\tt CXX} environment variables and these need
+to be adjusted for Intel compilers as follows after which
+compilation continues as normal.
+
+\begin{verbatim}
+export CXX=mpiicpc
+export CC=icc
+\end{verbatim}
+
+These can be added to your {\tt .bashrc} file.
+
+Example compilation follows:
+
+\begin{verbatim}
+ssh <username>@login0.p2chpd.univ-lyon1.fr
+inter
+export CXX=mpiicpc
+export CC=icc
+cd software
+tar -xzf <path>/TDTbase.tar.gz
+make -C TDTbase
+tar -xzf <path>/traveltime2d.tar.gz
+make -C traveltime2d
+tar -xzf <path>/TDTWavetomo2D.tar.gz
+make -C TDTWavetomo2D
+\end{verbatim}
+
 \bibliography{bibliography}
 \bibliographystyle{plainnat}
 

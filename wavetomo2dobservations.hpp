@@ -1298,6 +1298,115 @@ public:
     return true;
   }
 
+  bool save_weight_image(const char *filename)
+  {
+    //
+    // Allocate and initialise weight image
+    //
+    int size = width * height;
+    double *weight = new double[size];
+
+    for (int i = 0; i < size; i ++) {
+      weight[i] = 0.0;
+    }
+
+    //
+    // Paint weights into image
+    //
+    for (auto t : traces) {
+      for (auto tp : t->paths)  {
+
+	std::vector<int> indices;
+	std::vector<double> weights;
+	
+	tp->linearweights.get(indices, weights);
+	
+	for (int i = 0; i < (int)indices.size(); i ++) {
+	  weight[indices[i]] += weights[i];
+	}
+	
+      }
+    }
+      
+    //
+    // Save image
+    //
+    FILE *fp = fopen(filename, "w");
+    if (fp == NULL) {
+      fprintf(fp, "save_weight_image: failed to create file\n");
+      return false;
+    }
+
+    for (int j = 0; j < height; j ++) {
+      for (int i = 0; i < width; i ++) {
+
+	fprintf(fp, "%15.9f ", weight[j * width + i]);
+      }
+
+      fprintf(fp, "\n");
+    }
+
+    fclose(fp);
+    delete weight;
+
+    return true;
+  }
+
+  bool save_hitcount_image(const char *filename)
+  {
+    //
+    // Allocate and initialise hit count image
+    //
+    int size = width * height;
+    int *hc = new int[size];
+
+    for (int i = 0; i < size; i ++) {
+      hc[i] = 0;
+    }
+
+    //
+    // Paint weights into hit count image
+    //
+    for (auto t : traces) {
+      for (auto tp : t->paths)  {
+
+	std::vector<int> indices;
+	std::vector<double> weights;
+	
+	tp->linearweights.get(indices, weights);
+	
+	for (int i = 0; i < (int)indices.size(); i ++) {
+	  hc[indices[i]] ++;
+	}
+	
+      }
+    }
+      
+    //
+    // Save image
+    //
+    FILE *fp = fopen(filename, "w");
+    if (fp == NULL) {
+      fprintf(fp, "save_hitcount_image: failed to create file\n");
+      return false;
+    }
+
+    for (int j = 0; j < height; j ++) {
+      for (int i = 0; i < width; i ++) {
+
+	fprintf(fp, "%d ", hc[j * width + i]);
+      }
+
+      fprintf(fp, "\n");
+    }
+
+    fclose(fp);
+    delete hc;
+
+    return true;
+  }
+  
+
   bool save_residuals(size_t frequency_index,
 		      const char *filename,
 		      const double *residuals,
@@ -1338,7 +1447,6 @@ public:
     return true;
   }
 
-  
 private:
 
   class station;

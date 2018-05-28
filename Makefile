@@ -155,7 +155,8 @@ TARGETS = wavetomo2dfrequencyinvert \
 	postprocess_slice_likelihood \
 	postprocess_slice_mean_mpi \
 	analyseslicemodel \
-	slicemodellikelihood
+	slicemodellikelihood \
+	generatemask
 
 all : $(TARGETS)
 
@@ -218,6 +219,9 @@ analyseslicemodel : analyseslicemodel.o $(OBJS)
 
 slicemodellikelihood : slicemodellikelihood.o $(OBJS)
 	$(CXX) -o slicemodellikelihood slicemodellikelihood.o $(OBJS) $(LIBS) $(MPI_LIBS)
+
+generatemask : generatemask.o $(OBJS)
+	$(CXX) -o generatemask generatemask.o $(OBJS) $(LIBS) $(MPI_LIBS)
 
 %.o : %.cpp
 	$(CXX) $(CXXFLAGS) -o $*.o $*.cpp
