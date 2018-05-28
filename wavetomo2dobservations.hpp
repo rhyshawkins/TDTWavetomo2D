@@ -1333,7 +1333,7 @@ public:
     //
     FILE *fp = fopen(filename, "w");
     if (fp == NULL) {
-      fprintf(fp, "save_weight_image: failed to create file\n");
+      fprintf(stderr, "save_weight_image: failed to create file\n");
       return false;
     }
 
@@ -1387,7 +1387,7 @@ public:
     //
     FILE *fp = fopen(filename, "w");
     if (fp == NULL) {
-      fprintf(fp, "save_hitcount_image: failed to create file\n");
+      fprintf(stderr, "save_hitcount_image: failed to create file\n");
       return false;
     }
 
