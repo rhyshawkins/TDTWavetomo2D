@@ -184,6 +184,11 @@ public:
       throw WAVETOMO2DEXCEPTION("Failed to read no. stations");
     }
 
+    station_xmin = 1e9;
+    station_xmax = -1e9;
+    station_ymin = 1e9;
+    station_ymax = -1e9;
+    
     for (int i = 0; i < nstations; i ++) {
       char code[256];
       double x, y;
@@ -198,6 +203,19 @@ public:
 
       if (y < ymin || y > ymax) {
 	throw WAVETOMO2DEXCEPTION("Station out of range y: %s %f (%f %f)\n", code, y, ymin, ymax);
+      }
+
+      if (x < station_xmin) {
+	station_xmin = x;
+      }
+      if (x > station_xmax) {
+	station_xmax = x;
+      }
+      if (y < station_ymin) {
+	station_ymin = y;
+      }
+      if (y > station_ymax) {
+	station_ymax = y;
       }
       
       stations.push_back(station(code, coordinate(x, y)));
@@ -1447,6 +1465,38 @@ public:
     return true;
   }
 
+  double get_xmin() const {
+    return xmin;
+  }
+  
+  double get_xmax() const {
+    return xmax;
+  }
+
+  double get_ymin() const {
+    return ymin;
+  }
+  
+  double get_ymax() const {
+    return ymax;
+  }
+
+  double get_station_xmin() const {
+    return station_xmin;
+  }
+  
+  double get_station_xmax() const {
+    return station_xmax;
+  }
+
+  double get_station_ymin() const {
+    return station_ymin;
+  }
+  
+  double get_station_ymax() const {
+    return station_ymax;
+  }
+  
 private:
 
   class station;
@@ -1672,6 +1722,11 @@ private:
   double ymin;
   double ymax;
   
+  double station_xmin;
+  double station_xmax;
+  double station_ymin;
+  double station_ymax;
+
   VelocityField<double> *velocity;
   int refinement;
 

@@ -55,16 +55,16 @@ extern "C" {
 #include "wavetomo2dutil.hpp"
 
 
-static char short_options[] = "i:o:w:x:y:z:s:n:N:a:A:h";
+static char short_options[] = "i:o:x:y:z:Wn:N:a:A:h";
 static struct option long_options[] = {
   {"input", required_argument, 0, 'i'},
   {"output", required_argument, 0, 'o'},
-  {"weight", required_argument, 0, 'w'},
+  {"weight", required_argument, 0, 'W'},
 
   {"degree-x", required_argument, 0, 'x'},
   {"degree-y", required_argument, 0, 'y'},
   {"degree-z", required_argument, 0, 'z'},
-  {"slice", required_argument, 0, 's'},
+
   {"lonmin", required_argument, 0, 'n'},
   {"lonmax", required_argument, 0, 'N'},
   {"latmin", required_argument, 0, 'a'},
@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
       output_file = optarg;
       break;
 
-    case 'w':
+    case 'W':
       output_weight = true;
       break;
       
@@ -215,17 +215,25 @@ int main(int argc, char *argv[])
 				     true,
 				     cdf97_lift_inverse1d_cdf97_step);
 
+  printf("Cfg  Longitude: %10.6f %10.6f\n", observations->get_xmin(), observations->get_xmax());
+  printf("Cfg  Latitude : %10.6f %10.6f\n", observations->get_ymin(), observations->get_ymax());
+
+  printf("Data Longitude: %10.6f %10.6f\n", observations->get_station_xmin(), observations->get_station_xmax());
+  printf("Data Latitude : %10.6f %10.6f\n", observations->get_station_ymin(), observations->get_station_ymax());
+
   if (!observations->compute_linear_weights()) {
     fprintf(stderr, "error: failed to compute linear weights\n");
     return -1;
   }
 
   if (output_weight) {
+    printf("Outputing weights\n");
     if (!observations->save_weight_image(output_file)) {
       fprintf(stderr, "error: failed to save weight image\n");
       return -1;
     }
   } else {
+    printf("Outputing hit counts\n");
     if (!observations->save_hitcount_image(output_file)) {
       fprintf(stderr, "error: failed to save hitcount image\n");
       return -1;

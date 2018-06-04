@@ -121,7 +121,8 @@ SRCS = Makefile \
 	volume.hpp \
 	wavetomo2dexception.hpp \
 	wavetomo2dobservations.hpp \
-	wavetomo2dutil.hpp
+	wavetomo2dutil.hpp \
+	generatemask.cpp
 
 
 EXTRADIST = LICENSE \
