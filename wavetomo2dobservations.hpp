@@ -1370,6 +1370,7 @@ public:
     return true;
   }
 
+ 
   bool save_hitcount_image(const char *filename)
   {
     //
@@ -1424,6 +1425,86 @@ public:
     return true;
   }
   
+  bool save_identity_projection_matrix(const char *filename)
+  {
+    //
+    // Allocate and initialise weight image
+    //
+    int size = width * height;
+    double *weight = new double[size];
+
+    for (int i = 0; i < size; i ++) {
+      weight[i] = 0.0;
+    }
+
+    //
+    // Save matrix
+    //
+    FILE *fp = fopen(filename, "w");
+    if (fp == NULL) {
+      fprintf(stderr, "save_identity_projection_matrix: failed to create file\n");
+      return false;
+    }
+    
+    //
+    // Paint weights into image
+    //
+    for (auto t : traces) {
+      for (auto tp : t->paths)  {
+
+	std::vector<int> indices;
+	std::vector<double> weights;
+	
+	tp->linearweights.get(indices, weights);
+
+	for (int i = 0; i < size; i ++) {
+	  weight[i] = 0.0;
+	}
+	
+	for (int i = 0; i < (int)indices.size(); i ++) {
+	  weight[indices[i]] += weights[i];
+	}
+
+	for (int i = 0; i < size; i ++) {
+	  fprintf(fp, "%16.9e ", weight[i]);
+	}
+	fprintf(fp, "\n");
+      }
+    }
+      
+    fclose(fp);
+    delete weight;
+
+    return true;
+  }
+
+  bool save_b_dist_error_matrix(const char *filename, int slice)
+  {
+    //
+    // Save vectors together
+    //
+    FILE *fp = fopen(filename, "w");
+    if (fp == NULL) {
+      fprintf(stderr, "save_identity_projection_matrix: failed to create file\n");
+      return false;
+    }
+    
+    //
+    // Paint weights into image
+    //
+    for (auto t : traces) {
+      for (auto tp : t->paths)  {
+
+	fprintf(fp, "%16.9e %16.9e %16.9e\n",
+		tp->mean[slice], tp->distkm, tp->stddev[slice]);
+	
+      }
+    }
+      
+    fclose(fp);
+
+    return true;
+  }
 
   bool save_residuals(size_t frequency_index,
 		      const char *filename,

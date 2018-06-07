@@ -861,3 +861,27 @@ GlobalSlice::wavelet_forward_function_from_id(int id)
     return nullptr;
   }
 }
+
+void GlobalSlice::set_max_depth(int md)
+{
+  int maxd = wavetree2d_sub_maxdepth(wt);
+  if (md > maxd) {
+    md = maxd;
+  }
+
+  if (md < 1) {
+    md = 1;
+  }
+  
+  treemaxdepth = md;
+
+  int dmaxk = hnk_get_maxk_at_h(hnk, treemaxdepth);
+
+  printf("Depth maxk: %d\n", dmaxk);
+  if (kmax > dmaxk) {
+    kmax = dmaxk;
+  }
+  printf("New   maxk: %d\n", kmax);
+  
+
+}

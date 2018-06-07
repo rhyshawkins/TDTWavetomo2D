@@ -58,7 +58,7 @@ extern "C" {
 #include "wavetomo2dutil.hpp"
 #include "wavetomo2dexception.hpp"
 
-static char short_options[] = "i:I:M:H:L:o:x:y:z:u:s:n:N:a:A:t:S:F:l:k:B:Pw:v:c:T:m:e:Eh";
+static char short_options[] = "i:I:M:H:L:o:x:y:z:u:s:n:N:a:A:t:S:F:l:k:B:Pw:v:c:T:m:e:ED:h";
 static struct option long_options[] = {
   {"input", required_argument, 0, 'i'},
   {"initial", required_argument, 0, 'I'},
@@ -102,6 +102,8 @@ static struct option long_options[] = {
   {"exchange-rate", required_argument, 0, 'e'},
 
   {"linear", no_argument, 0, 'E'},
+
+  {"max-depth", required_argument, 0, 'D'},
   
   {"help", no_argument, 0, 'h'},
   
@@ -161,6 +163,8 @@ int main(int argc, char *argv[])
   int exchange_rate;
   double max_temperature;
 
+  int max_depth;
+
   int mpi_size;
   int mpi_rank;
 
@@ -215,6 +219,8 @@ int main(int argc, char *argv[])
   exchange_rate = 10;
 
   linear = false;
+
+  max_depth = -1;
 
   //
   // Command line parameters
@@ -413,6 +419,14 @@ int main(int argc, char *argv[])
       linear = true;
       break;
 
+    case 'D':
+      max_depth = atoi(optarg);
+      if (max_depth <= 0) {
+	fprintf(stderr, "error: max depth must be greater than 0\n");
+	return -1;
+      }
+      break;
+
     case 'h':
     default:
       usage(argv[0]);
@@ -515,6 +529,10 @@ int main(int argc, char *argv[])
 					posteriork,
 					wavelet_xy,
 					linear);
+
+  if (max_depth > 0) {
+    global->set_max_depth(max_depth);
+  }
   
   BirthSlice *birth = new BirthSlice(*global);
   DeathSlice *death = new DeathSlice(*global);

@@ -122,7 +122,8 @@ SRCS = Makefile \
 	wavetomo2dexception.hpp \
 	wavetomo2dobservations.hpp \
 	wavetomo2dutil.hpp \
-	generatemask.cpp
+	generatemask.cpp \
+	generatematrices.cpp
 
 
 EXTRADIST = LICENSE \
@@ -157,7 +158,8 @@ TARGETS = wavetomo2dfrequencyinvert \
 	postprocess_slice_mean_mpi \
 	analyseslicemodel \
 	slicemodellikelihood \
-	generatemask
+	generatemask \
+	generatematrices
 
 all : $(TARGETS)
 
@@ -223,6 +225,9 @@ slicemodellikelihood : slicemodellikelihood.o $(OBJS)
 
 generatemask : generatemask.o $(OBJS)
 	$(CXX) -o generatemask generatemask.o $(OBJS) $(LIBS) $(MPI_LIBS)
+
+generatematrices : generatematrices.o $(OBJS)
+	$(CXX) -o generatematrices generatematrices.o $(OBJS) $(LIBS) $(MPI_LIBS)
 
 %.o : %.cpp
 	$(CXX) $(CXXFLAGS) -o $*.o $*.cpp

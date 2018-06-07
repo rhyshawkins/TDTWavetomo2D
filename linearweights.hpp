@@ -55,6 +55,33 @@ public:
     return x;
   }
   
+  static double gc_dist(double x0, 
+			double y0, 
+			double x1, 
+			double y1, 
+			double r)
+  {
+    double dlon;
+    double dlat;
+    
+    double hsinlat;
+    double hsinlon;
+    
+    x0 *= M_PI/180.0;
+    y0 *= M_PI/180.0;
+    
+    x1 *= M_PI/180.0;
+    y1 *= M_PI/180.0;
+    
+    dlon = x1 - x0;
+    dlat = y1 - y0;
+    
+    hsinlat = sin(dlat/2.0);
+    hsinlon = sin(dlon/2.0);
+    
+    return 2.0 * asin(sqrt(hsinlat * hsinlat + cos(y0)*cos(y1)*(hsinlon*hsinlon))) * r;
+  }
+
   LinearWeights()
   {
   }
@@ -571,33 +598,6 @@ private:
     weights.push_back(weight_t(idx, dist));
     
     return true;
-  }
-
-  double gc_dist(double x0, 
-		 double y0, 
-		 double x1, 
-		 double y1, 
-		 double r)
-  {
-    double dlon;
-    double dlat;
-    
-    double hsinlat;
-    double hsinlon;
-    
-    x0 *= M_PI/180.0;
-    y0 *= M_PI/180.0;
-    
-    x1 *= M_PI/180.0;
-    y1 *= M_PI/180.0;
-    
-    dlon = x1 - x0;
-    dlat = y1 - y0;
-    
-    hsinlat = sin(dlat/2.0);
-    hsinlon = sin(dlon/2.0);
-    
-    return 2.0 * asin(sqrt(hsinlat * hsinlat + cos(y0)*cos(y1)*(hsinlon*hsinlon))) * r;
   }
 
   void gc_midpoint(double x0, double y0, double x1, double y1, double &xc, double &yc)

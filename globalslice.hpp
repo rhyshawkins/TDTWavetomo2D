@@ -121,6 +121,8 @@ public:
   void update_residual_covariance();
 
   int get_residual_size() const;
+
+  void set_max_depth(int md);
   
   const double *get_mean_residuals() const;
 
