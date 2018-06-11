@@ -351,7 +351,7 @@ int main(int argc, char *argv[])
       }
     }
     
-    printf("%2d %10.6f %10.6f (%10.6f) %10.6f (%d) (%16.9e %16.9e)\n", k, minc, meanc, meanabsc, maxc, meann, sumabs, sumabs/(double)meann);
+    printf("%2d %10.6f %10.6f (%10.6f) %10.6f (%d) (Laplace sum %16.9e mean %16.9e)\n", k, minc, meanc, meanabsc, maxc, meann, sumabs, sumabs/(double)meann);
   }
 
   if (coeff_file != NULL) {
