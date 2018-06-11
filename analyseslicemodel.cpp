@@ -282,11 +282,14 @@ int main(int argc, char *argv[])
     fprintf(stderr, "error: failed to do inverse transform\n");
     return -1;
   }
-  std::string fullimagefilename(threshold_file);
-  fullimagefilename += ".fullimage";
-  if (save_image(fullimagefilename.c_str(), width, height, image) < 0) {
-    fprintf(stderr, "error: failed to save thresolded image\n");
-    return -1;
+
+  if (threshold_file != nullptr) {
+    std::string fullimagefilename(threshold_file);
+    fullimagefilename += ".fullimage";
+    if (save_image(fullimagefilename.c_str(), width, height, image) < 0) {
+      fprintf(stderr, "error: failed to save thresolded image\n");
+      return -1;
+    }
   }
   
   wt = wavetree2d_sub_create(degree_x, degree_y, 0.0);
@@ -330,6 +333,7 @@ int main(int argc, char *argv[])
     meanc = 0.0;
     meanabsc = 0.0;
     meann = 0;
+    double sumabs = 0.0;
 
     /* printf("%2d: %5d ... %5d\n", k + 1, degree_start, degree_end); */
     for (l = 1; l < ncoeff; l ++) {
@@ -342,10 +346,12 @@ int main(int argc, char *argv[])
 	}
 	
 	update_m4(model[j * width + i], &meann, &meanc, &meanabsc, &minc, &maxc);
+
+	sumabs += fabs(model[j * width + i]);
       }
     }
     
-    printf("%2d %10.6f %10.6f (%10.6f) %10.6f (%d)\n", k, minc, meanc, meanabsc, maxc, meann);
+    printf("%2d %10.6f %10.6f (%10.6f) %10.6f (%d) (%16.9e %16.9e)\n", k, minc, meanc, meanabsc, maxc, meann, sumabs, sumabs/(double)meann);
   }
 
   if (coeff_file != NULL) {
