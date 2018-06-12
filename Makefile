@@ -20,7 +20,7 @@ EXTRA_LIBS = \
 	-L$(TDTBASE)/wavelet -lwavelet \
 	-L$(TRAVELTIMEBASE)/traveltime2d -ltraveltime2d
 
-CXX = mpicxx
+CXX ?= mpicxx
 CXXFLAGS = -c -g -Wall --std=c++11 
 
 CXXFLAGS += -O3

@@ -27,6 +27,7 @@
 
 #include "wavetomo2dexception.hpp"
 #include "wavetomo2dobservations.hpp"
+#include "wavetomo2dutil.hpp"
 
 #include "globalslice.hpp"
 
@@ -209,6 +210,15 @@ GlobalSlice::GlobalSlice(const char *filename,
     residual_hist = new int[residual_size * residual_hist_bins];
 
     reset_residuals();
+  } else {
+    residual_size = 0;
+    residual = nullptr;
+    mean_residual = nullptr;
+    last_valid_residual = nullptr;
+    residual_normed = nullptr;
+    mean_residual_normed = nullptr;
+    last_valid_residual_normed = nullptr;
+    residual_hist = nullptr;
   }
   
   if (initial_model == NULL) {
@@ -427,7 +437,11 @@ GlobalSlice::initialize_mpi(MPI_Comm _communicator, double _temperature)
   residual_offsets = new int[mpi_size];
   residual_sizes = new int[mpi_size];
 
-  int traces = observations->get_trace_count();
+  int traces = 0;
+  if (observations != nullptr) {
+    traces = observations->get_trace_count();
+  }
+  
   int processes = mpi_size;
 
   //
@@ -445,7 +459,9 @@ GlobalSlice::initialize_mpi(MPI_Comm _communicator, double _temperature)
 
   residual_sizes[0] = 0;
   for (int i = 0; i < trace_sizes[0]; i ++) {
-    residual_sizes[0] += observations->get_trace_slice_observation_count(i);
+    if (observations != nullptr) {
+      residual_sizes[0] += observations->get_trace_slice_observation_count(i);
+    }
   }
   
   INFO("Split: %4d %4d", trace_offsets[0], trace_sizes[0]);
@@ -456,26 +472,30 @@ GlobalSlice::initialize_mpi(MPI_Comm _communicator, double _temperature)
 
     residual_sizes[i] = 0;
     for (int j = 0; j < trace_sizes[i]; j ++) {
-      residual_sizes[i] += observations->get_trace_slice_observation_count(trace_offsets[i] + j);
+      if (observations != nullptr) {
+	residual_sizes[i] += observations->get_trace_slice_observation_count(trace_offsets[i] + j);
+      }
     }
 								     
     INFO("Split: %4d %4d", trace_offsets[i], trace_sizes[i]);
   }
 
-  if (trace_offsets[mpi_size - 1] + trace_sizes[mpi_size - 1] != observations->get_trace_count()) {
-    throw WAVETOMO2DEXCEPTION("Trace sharing intialization failure (trace mismatch %d + %d != %d)",
-			      trace_offsets[mpi_size - 1],
-			      trace_sizes[mpi_size - 1],
-			      observations->get_trace_count());
+  if (observations != nullptr) {
+    if (trace_offsets[mpi_size - 1] + trace_sizes[mpi_size - 1] != observations->get_trace_count()) {
+      throw WAVETOMO2DEXCEPTION("Trace sharing intialization failure (trace mismatch %d + %d != %d)",
+				trace_offsets[mpi_size - 1],
+				trace_sizes[mpi_size - 1],
+				observations->get_trace_count());
+    }
+    
+    if (residual_offsets[mpi_size - 1] + residual_sizes[mpi_size - 1] != observations->get_slice_observation_count(slice)) {
+      throw WAVETOMO2DEXCEPTION("Trace sharing intialization failure (residual mismatch %d + %d != %d)",
+				residual_offsets[mpi_size - 1],
+				residual_sizes[mpi_size - 1],
+				observations->get_observation_count());
+    }
   }
-
-  if (residual_offsets[mpi_size - 1] + residual_sizes[mpi_size - 1] != observations->get_slice_observation_count(slice)) {
-    throw WAVETOMO2DEXCEPTION("Trace sharing intialization failure (residual mismatch %d + %d != %d)",
-			      residual_offsets[mpi_size - 1],
-			      residual_sizes[mpi_size - 1],
-			      observations->get_observation_count());
-  }
-
+  
   temperature = _temperature;
 }
 
@@ -549,23 +569,25 @@ GlobalSlice::likelihood_mpi(double &log_normalization)
       throw WAVETOMO2DEXCEPTION("Likelihood failed in broadcast\n");
     }
     
-    MPI_Allgatherv(residual + residual_offsets[mpi_rank],
-		   residual_sizes[mpi_rank],
-		   MPI_DOUBLE,
-		   residual,
-		   residual_sizes,
-		   residual_offsets,
-		   MPI_DOUBLE,
-		   communicator);
+    MPI_Gatherv(residual + residual_offsets[mpi_rank],
+		residual_sizes[mpi_rank],
+		MPI_DOUBLE,
+		residual,
+		residual_sizes,
+		residual_offsets,
+		MPI_DOUBLE,
+		0,
+		communicator);
 
-    MPI_Allgatherv(residual_normed + residual_offsets[mpi_rank],
-		   residual_sizes[mpi_rank],
-		   MPI_DOUBLE,
-		   residual_normed,
-		   residual_sizes,
-		   residual_offsets,
-		   MPI_DOUBLE,
-		   communicator);
+    MPI_Gatherv(residual_normed + residual_offsets[mpi_rank],
+		residual_sizes[mpi_rank],
+		MPI_DOUBLE,
+		residual_normed,
+		residual_sizes,
+		residual_offsets,
+		MPI_DOUBLE,
+		0,
+		communicator);
     
     return total;
     
@@ -749,63 +771,81 @@ GlobalSlice::get_mean_normed_residuals() const
 bool
 GlobalSlice::save_residuals(const char *filename)
 {
-  return observations->save_residuals(slice, filename, mean_residual, mean_residual_normed);
+  if (observations != nullptr) {
+    return observations->save_residuals(slice, filename, mean_residual, mean_residual_normed);
+  } else {
+    return true;
+  }
 }
 
 bool
 GlobalSlice::save_residual_histogram(const char *filename) const
 {
-  FILE *fp = fopen(filename, "w");
-  if (fp == NULL) {
-    ERROR("Failed to create file");
-    return false;
-  }
-
-  fprintf(fp, "%d %d %f %f\n", residual_size, residual_hist_bins, residual_hist_min, residual_hist_max);
-  for (int i = 0; i < residual_size; i ++) {
-    for (int j = 0; j < residual_hist_bins; j ++) {
-      fprintf(fp, "%d ", residual_hist[i * residual_hist_bins + j]);
+  if (observations != nullptr) {
+    FILE *fp = fopen(filename, "w");
+    if (fp == NULL) {
+      ERROR("Failed to create file");
+      return false;
     }
-    fprintf(fp, "\n");
+    
+    fprintf(fp, "%d %d %f %f\n", residual_size, residual_hist_bins, residual_hist_min, residual_hist_max);
+    for (int i = 0; i < residual_size; i ++) {
+      for (int j = 0; j < residual_hist_bins; j ++) {
+	fprintf(fp, "%d ", residual_hist[i * residual_hist_bins + j]);
+      }
+      fprintf(fp, "\n");
+    }
+    
+    fclose(fp);
   }
-
-  fclose(fp);
-
+  
   return true;
 }
 
 bool
 GlobalSlice::save_residual_covariance(const char *filename) const
 {
-  FILE *fp = fopen(filename, "w");
-  if (fp == NULL) {
-    ERROR("Failed to create file\n");
-    return false;
-  }
-
-  fprintf(fp, "%d\n", (int)cov_count.size());
-  
-  for (int i = 0; i < (int)cov_count.size(); i ++) {
-
-    int N = cov_count[i];
-
-    fprintf(fp, "%d\n", N);
-    for (int j = 0; j < N; j ++) {
-      fprintf(fp, "%.9g ", cov_mu[i][j]);
+  if (observations != nullptr) {
+    FILE *fp = fopen(filename, "w");
+    if (fp == NULL) {
+      ERROR("Failed to create file\n");
+      return false;
     }
-    fprintf(fp, "\n");
-
-    for (int j = 0; j < N; j ++) {
-      for (int k = 0; k < N; k ++) {
-	fprintf(fp, "%.9g ", cov_sigma[i][j * N + k]);
+    
+    fprintf(fp, "%d\n", (int)cov_count.size());
+    
+    for (int i = 0; i < (int)cov_count.size(); i ++) {
+      
+      int N = cov_count[i];
+      
+      fprintf(fp, "%d\n", N);
+      for (int j = 0; j < N; j ++) {
+	fprintf(fp, "%.9g ", cov_mu[i][j]);
       }
       fprintf(fp, "\n");
+      
+      for (int j = 0; j < N; j ++) {
+	for (int k = 0; k < N; k ++) {
+	  fprintf(fp, "%.9g ", cov_sigma[i][j * N + k]);
+	}
+	fprintf(fp, "\n");
+      }
     }
+    
+    fclose(fp);
   }
 
-  fclose(fp);
-
   return true;
+}
+
+bool
+GlobalSlice::save_zoffset(const char *filename, int slice)
+{
+  if (observations != nullptr) {
+    return ::save_zoffset(filename, zoffset + slice, 1);
+  } else {
+    return true;
+  }
 }
 
 generic_lift_inverse1d_step_t

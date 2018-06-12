@@ -959,7 +959,7 @@ int main(int argc, char *argv[])
     }
 
     filename = mkfilename(output_prefix, "zoffset.txt");
-    if (!save_zoffset(filename.c_str(), global->zoffset + slice, 1)) {
+    if (!global->save_zoffset(filename.c_str(), slice)) {
       ERROR("Failed to save zoffset");
       return -1;
     }

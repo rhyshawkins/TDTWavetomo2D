@@ -131,6 +131,8 @@ public:
   bool save_residuals(const char *filename);
   bool save_residual_histogram(const char *filename) const;
   bool save_residual_covariance(const char *filename) const;
+
+  bool save_zoffset(const char *filename, int slice);
   
   static generic_lift_inverse1d_step_t wavelet_inverse_function_from_id(int id);
   static generic_lift_forward1d_step_t wavelet_forward_function_from_id(int id);

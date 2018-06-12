@@ -54,12 +54,10 @@ extern "C" {
 
 #include "wavetomo2dutil.hpp"
 
-
-static char short_options[] = "i:o:x:y:z:Wn:N:a:A:h";
+static char short_options[] = "i:o:x:y:z:w:n:N:a:A:h";
 static struct option long_options[] = {
   {"input", required_argument, 0, 'i'},
   {"output", required_argument, 0, 'o'},
-  {"weight", required_argument, 0, 'W'},
 
   {"degree-x", required_argument, 0, 'x'},
   {"degree-y", required_argument, 0, 'y'},
@@ -69,12 +67,17 @@ static struct option long_options[] = {
   {"lonmax", required_argument, 0, 'N'},
   {"latmin", required_argument, 0, 'a'},
   {"latmax", required_argument, 0, 'A'},
+
+  {"wavelet", required_argument, 0, 'w'},
+
   {"help", no_argument, 0, 'h'},
   
   {0, 0, 0, 0}
 };
 
 static void usage(const char *pname);
+
+static double *generate_wavelet_matrix(int degreex, int degreey, generic_lift_inverse1d_step_t basis);
 
 int main(int argc, char *argv[])
 {
@@ -86,7 +89,6 @@ int main(int argc, char *argv[])
   //
   char *input_obs;
   char *output_file;
-  bool output_weight;
   
   int degreex;
   int degreey;
@@ -97,13 +99,15 @@ int main(int argc, char *argv[])
   double lonmax;
   double latmin;
   double latmax;
+
+  int wavelet;
+  
   //
   // Defaults
   //
 
   input_obs = nullptr;
   output_file = nullptr;
-  output_weight = false;
   
   degreex = 7;
   degreey = 6;
@@ -114,6 +118,9 @@ int main(int argc, char *argv[])
   lonmax = 10.0;
   latmin = -10.0;
   latmax = 10.0;
+
+  wavelet = 0;
+  
   //
   // Command line parameters
   //
@@ -135,10 +142,6 @@ int main(int argc, char *argv[])
       output_file = optarg;
       break;
 
-    case 'W':
-      output_weight = true;
-      break;
-      
     case 'x':
       degreex = atoi(optarg);
       if (degreex < 1 || degreex > 16) {
@@ -184,6 +187,11 @@ int main(int argc, char *argv[])
     case 'A':
       latmax = atof(optarg);
       break;
+
+    case 'w':
+      wavelet = atoi(optarg);
+      break;
+      
     case 'h':
     default:
       usage(argv[0]);
@@ -251,4 +259,17 @@ int main(int argc, char *argv[])
   
 static void usage(const char *pname)
 {
+}
+
+static double *generate_wavelet_matrix(int degreex, int degreey, generic_lift_inverse1d_step_t basis)
+{
+  int imagewidth = 2 << degreex;
+  int imageheight = 2 << degreey;
+  
+  int N = imagewidth * imageheight;
+  int size = (N*N);
+
+  double *matrix = new double[size];
+
+  
 }

@@ -1298,6 +1298,9 @@ public:
       for (auto tp : t->paths) {
 
 	// Point B is tp->coord
+
+	tp->linearweights.clear();
+	
 	if (!tp->linearweights.compute_weights(xmin, xmax,
 					       ymin, ymax,
 					       super_width, super_height,
@@ -1433,10 +1436,6 @@ public:
     int size = width * height;
     double *weight = new double[size];
 
-    for (int i = 0; i < size; i ++) {
-      weight[i] = 0.0;
-    }
-
     //
     // Save matrix
     //
@@ -1460,15 +1459,21 @@ public:
 	for (int i = 0; i < size; i ++) {
 	  weight[i] = 0.0;
 	}
-	
+
+	double total = 0.0;
 	for (int i = 0; i < (int)indices.size(); i ++) {
 	  weight[indices[i]] += weights[i];
+	  total += weights[i];
 	}
 
 	for (int i = 0; i < size; i ++) {
 	  fprintf(fp, "%16.9e ", weight[i]);
 	}
 	fprintf(fp, "\n");
+
+	// printf("%16.9e %16.9e %16.9e\n", total, tp->distkm,
+	//        LinearWeights::gc_dist(t->coord.X(), t->coord.Y(),
+	// 			      tp->coord.X(), tp->coord.Y(), 6371.0));
       }
     }
       
