@@ -159,8 +159,9 @@ GlobalSlice::GlobalSlice(const char *filename,
 
     observations->compute_mean_velocities(zoffset, observations->get_frequency_count());
 
-    INFO("%d stations, %d frequencies, %d observations\n",
+    INFO("%d stations, %d traces, %d frequencies, %d observations\n",
 	 observations->get_station_count(),
+	 observations->get_trace_count(),
 	 observations->get_frequency_count(),
 	 observations->get_observation_count());
 
@@ -422,7 +423,7 @@ GlobalSlice::hierarchical_likelihood(double proposed_lambda_scale,
 void
 GlobalSlice::initialize_mpi(MPI_Comm _communicator, double _temperature)
 {
-  communicator = _communicator;
+  MPI_Comm_dup(_communicator, &communicator);
 
   if (MPI_Comm_size(communicator, &mpi_size) != MPI_SUCCESS) {
     throw WAVETOMO2DEXCEPTION("MPI Failure\n");
@@ -432,6 +433,8 @@ GlobalSlice::initialize_mpi(MPI_Comm _communicator, double _temperature)
     throw WAVETOMO2DEXCEPTION("MPI Failure\n");
   }
 
+  INFO("GlobalSlice MPI: %3d/%3d", mpi_rank, mpi_size);
+  
   trace_offsets = new int[mpi_size];
   trace_sizes = new int[mpi_size];
   residual_offsets = new int[mpi_size];
@@ -463,8 +466,8 @@ GlobalSlice::initialize_mpi(MPI_Comm _communicator, double _temperature)
       residual_sizes[0] += observations->get_trace_slice_observation_count(i);
     }
   }
-  
-  INFO("Split: %4d %4d", trace_offsets[0], trace_sizes[0]);
+
+  INFO("Split: %4d %4d %4d %4d", trace_offsets[0], trace_sizes[0], residual_offsets[0], residual_sizes[0]);
   
   for (int i = 1; i < mpi_size; i ++) {
     trace_offsets[i] = trace_offsets[i - 1] + trace_sizes[i - 1];
@@ -477,7 +480,7 @@ GlobalSlice::initialize_mpi(MPI_Comm _communicator, double _temperature)
       }
     }
 								     
-    INFO("Split: %4d %4d", trace_offsets[i], trace_sizes[i]);
+    INFO("Split: %4d %4d %4d %4d", trace_offsets[i], trace_sizes[i], residual_offsets[i], residual_sizes[i]);
   }
 
   if (observations != nullptr) {
@@ -552,7 +555,7 @@ GlobalSlice::likelihood_mpi(double &log_normalization)
     }
     
     double total;
-    
+
     if (MPI_Reduce(&local_log_normalization, &total, 1, MPI_DOUBLE, MPI_SUM, 0, communicator) != MPI_SUCCESS) {
       throw WAVETOMO2DEXCEPTION("Likelihood failed in reducing\n");
     }
@@ -568,26 +571,51 @@ GlobalSlice::likelihood_mpi(double &log_normalization)
     if (MPI_Bcast(&total, 1, MPI_DOUBLE, 0, communicator) != MPI_SUCCESS) {
       throw WAVETOMO2DEXCEPTION("Likelihood failed in broadcast\n");
     }
-    
-    MPI_Gatherv(residual + residual_offsets[mpi_rank],
-		residual_sizes[mpi_rank],
-		MPI_DOUBLE,
-		residual,
-		residual_sizes,
-		residual_offsets,
-		MPI_DOUBLE,
-		0,
-		communicator);
 
-    MPI_Gatherv(residual_normed + residual_offsets[mpi_rank],
-		residual_sizes[mpi_rank],
-		MPI_DOUBLE,
-		residual_normed,
-		residual_sizes,
-		residual_offsets,
-		MPI_DOUBLE,
-		0,
-		communicator);
+    
+    if (mpi_rank == 0) {
+      MPI_Gatherv(MPI_IN_PLACE,
+		  residual_sizes[mpi_rank],
+		  MPI_DOUBLE,
+		  residual,
+		  residual_sizes,
+		  residual_offsets,
+		  MPI_DOUBLE,
+		  0,
+		  communicator);
+    } else {
+      MPI_Gatherv(residual + residual_offsets[mpi_rank],
+		  residual_sizes[mpi_rank],
+		  MPI_DOUBLE,
+		  residual,
+		  residual_sizes,
+		  residual_offsets,
+		  MPI_DOUBLE,
+		  0,
+		  communicator);
+    }
+
+    if (mpi_rank == 0) {
+      MPI_Gatherv(MPI_IN_PLACE,
+		  residual_sizes[mpi_rank],
+		  MPI_DOUBLE,
+		  residual_normed,
+		  residual_sizes,
+		  residual_offsets,
+		  MPI_DOUBLE,
+		  0,
+		  communicator);
+    } else {
+      MPI_Gatherv(residual_normed + residual_offsets[mpi_rank],
+		  residual_sizes[mpi_rank],
+		  MPI_DOUBLE,
+		  residual_normed,
+		  residual_sizes,
+		  residual_offsets,
+		  MPI_DOUBLE,
+		  0,
+		  communicator);
+    }
     
     return total;
     
