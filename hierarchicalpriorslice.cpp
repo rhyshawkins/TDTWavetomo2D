@@ -207,7 +207,9 @@ HierarchicalPriorSlice::choose_value(double &value,
     value *= exp(sqrt(global.temperature) * global.random.normal(sigma));
     
     valid_proposal = 1;
-    log_value_prior_ratio = beta * (old_value*old_value - value*value);
+    //log_value_prior_ratio = beta * (old_value*old_value - value*value);
+
+    log_value_prior_ratio = 2.0*(log(old_value) - log(value)) + beta/old_value - beta/value;
   }
 
   return 0;

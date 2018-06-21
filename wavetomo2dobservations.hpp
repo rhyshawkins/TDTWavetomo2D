@@ -407,6 +407,28 @@ public:
     return true;
   }
 
+  bool save_velocities(const char *filename)
+  {
+    FILE *fp = fopen(filename, "w");
+
+    if (fp == NULL) {
+      return false;
+    }
+    
+    for (auto t: traces) {
+
+      for (auto tp: t->paths) {
+
+	for (size_t fi = 0; fi < tp->nfreq; fi ++) {
+	  fprintf(fp, "%15.9f %15.9f %15.9f %15.9f\n", tp->mean[fi], tp->median[fi], tp->mode[fi], tp->stddev[fi]);
+	}
+      }
+    }
+
+    fclose(fp);
+    return true;
+  }
+
   int get_station_count() const
   {
     return stations.size();

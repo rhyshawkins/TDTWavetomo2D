@@ -293,7 +293,7 @@ int main(int argc, char *argv[])
 
     case 'z':
       degreez = atoi(optarg);
-      if (degreez < 1 || degreez > 16) {
+      if (degreez < 0 || degreez > 16) {
 	fprintf(stderr, "error: degreez out of range\n");
 	return -1;
       }
@@ -573,6 +573,14 @@ int main(int argc, char *argv[])
       fprintf(stderr, "error: failed to save true output\n");
       return -1;
     }
+
+    char filename[1024];
+    sprintf(filename, "%s.velocities", true_output);
+    if (!obs->save_velocities(filename)) {
+      fprintf(stderr, "error: failed to save true output velocities\n");
+      return -1;
+    }
+      
   }
 
     
