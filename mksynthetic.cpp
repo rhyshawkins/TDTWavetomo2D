@@ -114,6 +114,22 @@ double synthetic_rampfrequency3km(double nx, double ny, double nf)
   return 2.5 + nf;
 }
 
+static int image_width = -1;
+static int image_height = -1;
+static double *image = nullptr;
+
+double synthetic_image(double nx, double ny, double nf)
+{
+  if (image != nullptr) {
+    int i = nx * (double)image_width;
+    int j = ny * (double)image_height;
+
+    return image[j * image_width + i];
+  }
+
+  return -1.0;
+}
+
 typedef double (*synthetic_t)(double, double, double);
 static std::map<std::string, synthetic_t> synthetic_models = {
   {"Uniform", synthetic_uniform3km},
@@ -130,7 +146,7 @@ static std::map<std::string, synthetic_t> synthetic_models = {
   {"RampFrequency", synthetic_rampfrequency3km}
 };
 
-static char short_options[] = "o:t:I:U:T:m:x:y:z:u:n:N:a:A:f:F:Cs:W:H:S:lh";
+static char short_options[] = "o:t:I:U:T:m:M:x:y:z:u:n:N:a:A:f:F:Cs:W:H:S:lh";
 static struct option long_options[] = {
   {"output", required_argument, 0, 'o'},
   {"template-input", required_argument, 0, 't'},
@@ -138,6 +154,7 @@ static struct option long_options[] = {
   {"upscale-output", required_argument, 0, 'U'},
   {"true-output", required_argument, 0, 'T'},
   {"model", required_argument, 0, 'm'},
+  {"model-image", required_argument, 0, 'M'},
   {"degree-x", required_argument, 0, 'x'},
   {"degree-y", required_argument, 0, 'y'},
   {"degree-z", required_argument, 0, 'z'},
@@ -173,6 +190,7 @@ int main(int argc, char *argv[])
   // Parameters
   //
   std::string modelname;
+  const char *modelimage;
   
   int degreex;
   int degreey;
@@ -210,6 +228,7 @@ int main(int argc, char *argv[])
   // Defaults
   //
   modelname = "Uniform";
+  modelimage = nullptr;
   
   degreex = 4;
   degreey = 4;
@@ -273,6 +292,10 @@ int main(int argc, char *argv[])
       
     case 'm':
       modelname = optarg;
+      break;
+
+    case 'M':
+      modelimage = optarg;
       break;
 
     case 'x':
@@ -394,13 +417,38 @@ int main(int argc, char *argv[])
     return -1;
   }
 
-  
-  std::map<std::string, synthetic_t>::iterator it = synthetic_models.find(modelname);
-  if (it == synthetic_models.end()) {
-    fprintf(stderr, "error: invalid model name %s\n", modelname.c_str());
-    return -1;
+  synthetic_t model_func = nullptr;
+
+  if (modelimage != nullptr) {
+    image_width = 1 << degreex;
+    image_height = 1 << degreey;
+    image = new double[image_width * image_height];
+    FILE *fp = fopen(modelimage, "r");
+    if (fp == NULL) {
+      fprintf(stderr, "error: failed to open %s for reading\n", modelimage);
+      return -1;
+    }
+
+    for (int j = 0; j < image_height; j ++) {
+      for (int i = 0; i < image_width; i ++) {
+	if (fscanf(fp, "%lf", &image[j * image_width + i]) != 1) {
+	  fprintf(stderr, "error: failed to read image\n");
+	  return -1;
+	}
+      }
+    }
+
+    fclose(fp);
+
+    model_func = synthetic_image;
+  } else {
+    std::map<std::string, synthetic_t>::iterator it = synthetic_models.find(modelname);
+    if (it == synthetic_models.end()) {
+      fprintf(stderr, "error: invalid model name %s\n", modelname.c_str());
+      return -1;
+    }
+    model_func = it->second;
   }
-  synthetic_t model_func = it->second;
 
   generic_lift_inverse1d_step_t waveletxy = Global::wavelet_inverse_function_from_id(wavelet);
   
@@ -666,3 +714,4 @@ static bool save_image(const char *filename, double *model, int width, int heigh
   fclose(fp);
   return true;
 }
+
