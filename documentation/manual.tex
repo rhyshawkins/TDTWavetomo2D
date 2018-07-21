@@ -842,26 +842,63 @@ analyseslicemodel -i fmst-image.txt \
         -T fmst-threshold.txt -t 0.04
 \end{verbatim}
 
-The input image is specified with the -i option. The -x/-y
-are the usual image degrees for width and height. The
--m option is the mean of the image (or the mean velocity
-of the observations). The -w option is the wavelet basis
-to use and it is recommended that 4 is used as this is the
-smoothest wavelet basis. The -T option specifies the outputted
-model and the -t option specifies the thresholding level.
-The larger this value, the fewer coefficients will be
-included in the model. The program will also output
-fmst-threshold.txt.image file which can be compared to the
-inputted fmst-image.txt to ensure that the broad features
-a maintained. The output of the program outputs
-the number of coefficients, the last two lines of the output
-as an example:
+The input image is specified with the -i option. The -x/-y are the
+usual image degrees for width and height. The -m option is the mean of
+the image (or the mean velocity of the observations). The -w option is
+the wavelet basis to use and it is recommended that 4 is used as this
+is the smoothest wavelet basis. The -T option specifies the outputted
+model and the -t option specifies the thresholding level.  The larger
+this value, the fewer coefficients will be included in the model. The
+program will also output fmst-threshold.txt.image file which can be
+compared to the inputted fmst-image.txt to ensure that the broad
+features a maintained. The output of the program outputs the number of
+coefficients, the last two lines of the output as an example:
 
 \begin{verbatim}
 Threshold: 0.04 28 coeff
 Mean deviation: 0.0477730176
 \end{verbatim}
 
+For the simple tutorial model, 28 coefficients is reasonable.  There
+is a bit of experimentation required to choose a good threshold value
+here, but the basic principle is to choose a value that retains the
+features in original image while having a reasonable number of wavelet
+coefficients.
+
+The {\texttt fmst-threshold.txt} file is in the format of a
+wavelet tree model and can be used as a starting model for
+an inversion. To use this file in a serial inversion,
+you can run
+
+\begin{verbatim}
+wavetomo2dfrequencysliceinvert <other options> -I fmst-threshold.txt
+\end{verbatim}
+
+FOr the parallel version of the code, the initial model needs to
+be generated for each process and stored in a directory. As an example
+where we have four chains, we could manually generate the files, eg
+
+\begin{verbatim}
+mkdir starting
+cp fmst-threshold.txt starting/final-model.txt-000
+cp fmst-threshold.txt starting/final-model.txt-001
+cp fmst-threshold.txt starting/final-model.txt-002
+cp fmst-threshold.txt starting/final-model.txt-003
+\end{verbatim}
+
+Then these can be used for a starting model for a parallel inversion, eg
+
+\begin{verbatim}
+mpirun -np 4 wavetomo2dfrequencysliceinvert_pt <other options> -I starting/
+\end{verbatim}
+
+There is another script called mkstarting.py that can be used to
+automate this process. Inorder to create the same starting models
+as was manually create above, you can use:
+
+\begin{verbatim}
+python2 mkstarting.py -i fmst-threshold.txt -o starting --np 4
+\end{verbatim}
 
 
 
