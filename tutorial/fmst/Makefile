@@ -12,4 +12,10 @@ gridi.vtx :
 	-n -10.0 -N 10.0 \
         -a -10.0 -A 10.0
 
+gridc.vtx : gridi.vtx
+	ttomoss
+
+fmst-image.txt : gridc.vtx
+	python2 ../../scripts/vtxtoimage.py -i $< -o $@
+
 

@@ -37,9 +37,11 @@ if __name__ == '__main__':
         i = i + 1
         
         if (jj > 0 and ii > 0 and jj < (height + 1) and ii < (width + 1)):
-            image[jj - 1, ii - 1] = v
-            #error[jj - 1, ii - 1] = err
 
+            j = jj - 1
+            image[height - j - 1, ii - 1] = v
+            
+            #error[jj - 1, ii - 1] = err
 
     numpy.savetxt(args.output, image)
     #numpy.savetxt(args.output + '.error', error)
