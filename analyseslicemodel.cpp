@@ -435,7 +435,8 @@ int main(int argc, char *argv[])
     }
 
     printf("Threshold: %.9g %d coeff\n", threshold, wavetree2d_sub_coeff_count(wt));
-
+    printf("Mean Deviation: %.9g\n", wavetree2d_sub_mean_abs_deviation(wt));
+    
     //
     // Save wavetree model
     //
