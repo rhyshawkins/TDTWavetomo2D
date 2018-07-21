@@ -1,0 +1,8 @@
+ccccccccccccccccccccccccccccccccccccccccccccc
+c Parameter file for constructing synthetic
+c set of observed traveltime residuals.
+ccccccccccccccccccccccccccccccccccccccccccccc
+fmst-otimes.dat                   c: File containing observed times
+fmst-sources.dat                  c: File containing source info.
+fmst-receivers.dat                c: File containing receiver info.
+rtravel.out                  c: File containing model traveltimes

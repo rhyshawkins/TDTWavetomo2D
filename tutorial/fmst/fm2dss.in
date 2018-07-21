@@ -1,0 +1,24 @@
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c INPUT PARAMETERS
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+fmst-sources.dat               c: File containing source positions
+fmst-receivers.dat             c: File containing receiver positions
+fmst-otimes.dat                c: File containing source-receiver associations
+gridc.vtx                      c: File containing velocity grid information
+8     8                        c: Grid dicing in latitude and longitude
+1                              c: Apply source grid refinement? (0=no,1=yes)
+5    10                        c: Dicing level and extent of refined grid
+6371.0                         c: Earth radius in km
+1                              c: Use first-order(0) or mixed-order(1) scheme
+0.5                            c: Narrow band size (0-1) as fraction of nnx*nnz
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c OUTPUT FILES
+ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+1                              c: find source-receiver traveltimes (0=no,1=yes)
+rtravel.out                    c: Name of file containing source-receiver traveltimes
+1                              c: Calculate Frechet derivatives (0=no,1=yes)
+frechet.out                    c: Name of file containing Frechet derivatives
+0                              c: Write traveltime field to file? (0=no,>0=source id)
+travelt.out                    c: name of output file containing traveltime field
+-1                             c: Write out raypaths (<0=all,0=no,>0=source id)
+raypath.out                    c: Name of file containing raypath geometry

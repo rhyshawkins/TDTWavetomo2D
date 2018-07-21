@@ -1,0 +1,17 @@
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+c INPUT PARAMETERS
+cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+gridi.vtx                 c: File containing starting velocity field
+gridc.vtx                 c: File containing current velocity field
+fmst-otimes.dat           c: File containing observed traveltime residuals
+rtravel.out               c: File containing model traveltimes
+frechet.out               c: File containing Frechet derivatives
+fmst-sources.dat          c: File containing source information
+fmst-receivers.dat        c: File containing receiver information
+subiter.in                c: File indicating current inversion step
+0.01                      c: Damping factor (epsilon)
+10                        c: Subspace dimension
+1                         c: Apply 2nd derivative smoothing (0=no, 1=yes)
+1.00                      c: Smoothing factor (eta)
+0                         c: Account for latitude in smoothing (0=no, 1=yes)
+0.2                       c: Fraction of max. G size for sparse matrix

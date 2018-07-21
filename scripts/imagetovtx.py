@@ -55,11 +55,11 @@ if __name__ == '__main__':
     gminlon = args.minlon - dlon/2.0
 
     dlat = (args.maxlat - args.minlat)/float(height)
-    gminlat = args.minlat - dlat/2.0
+    gmaxlat = args.maxlat + dlat/2.0
     
     f = open(args.output, 'w')
-    f.write('%d %d\n' % (height + 2, width + 2))
-    f.write('%10.6f %10.6f\n' % (gminlat, gminlon))
+    f.write('%d %d\n' % (height, width))
+    f.write('%10.6f %10.6f\n' % (gmaxlat, gminlon))
     f.write('%15.9f %16.9f\n' % (dlat, dlon))
 
     for i in range(width + 2):
@@ -79,7 +79,7 @@ if __name__ == '__main__':
                 jj = height - 1
                 
             
-            f.write('%10.6f %10.6f\n' % (image[jj, ii], args.error))
+            f.write('%10.6f %10.6f\n' % (image[height - jj - 1, ii], args.error))
 
     f.close()
     
