@@ -757,6 +757,48 @@ time limits. In this case, some short initial runs of a small number of
 iterations may need to be run to gauge an estimated number of iterations
 that can be performed within time limits.
 
+\section{Use of FMST}
+
+FMST is a fast marching inversion program written by Nick Rawlinson
+which uses a subspace optimisation approach. This can be used as a
+baseline test of your data for identifying outliers, and also for
+generating starting models to save time in using McMC steps to
+converge to a reasonably optimal model.
+
+\subsection{Conversion of data files}
+
+Once you have your data in the format required for, we can generate
+the data files required for FMST using the script {\texttt
+  converttofmst.py} in the {\texttt script} subdirectory. The
+command line is simply
+
+\begin{verbatim}
+python converttofmst.py -i tdtwave2d-data.txt -o fmst-input
+\end{verbatim}
+
+where {\texttt tdtwave2d-data.txt} is the data file in the format
+required by the WaveTomo2D software and {\texttt fmst-input} is
+the output prefix for the data files required by FMST, ie
+this will create:
+
+\begin{verbatim}
+fmst-input-order.dat
+fmst-input-otimes.dat
+fmst-input-receivers.dat
+fmst-input-sources.dat
+\end{verbatim}
+
+where the otimes, receivers, sources are as described in the
+FMST documentation and the order file is simply the same as
+the receivers/sources file but with station names to make matching
+sources/receivers to stations a little easier.
+
+\subsection{Creating a model}
+
+
+
+\appendix
+
 \section{Individual Program References}
 
 \subsection{wavetomo2dfrequencysliceinvert}
@@ -767,7 +809,6 @@ that can be performed within time limits.
 
 \subsection{postprocess\_slice\_likelihood}
 
-\appendix
 
 \section{Data file format}
 \label{sec:fileformat}
