@@ -147,7 +147,7 @@ EXTRADIST = LICENSE \
 	scripts/mkstarting.py \
 	scripts/vtxtoimage.py \
 	slurm/example_parallel.slurm \
-	pbs/pbs_example_parallel.slurm
+	pbs/pbs_example_parallel.sh
 
 TARGETS = wavetomo2dfrequencyinvert \
 	wavetomo2dfrequencyinvert_pt \
