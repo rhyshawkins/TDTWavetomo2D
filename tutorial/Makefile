@@ -10,6 +10,7 @@ tutorial_raw_0.1.txt :
 	../mksynthetic -o $@ \
 	-m CosineCheck0 \
 	-I tutorial_image.img \
+	-T tutorial_true.txt \
 	-n -10.0 -N 10.0 \
 	-a -10.0 -A 10.0 \
 	-f 0.05 -F 0.5 \

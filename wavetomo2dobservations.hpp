@@ -420,7 +420,7 @@ public:
       for (auto tp: t->paths) {
 
 	for (size_t fi = 0; fi < tp->nfreq; fi ++) {
-	  fprintf(fp, "%15.9f %15.9f %15.9f %15.9f\n", tp->mean[fi], tp->median[fi], tp->mode[fi], tp->stddev[fi]);
+	  fprintf(fp, "%s %s %15.9f %15.9f %15.9f %15.9f %15.9f\n", t->code.c_str(), tp->code.c_str(), tp->distkm, tp->mean[fi], tp->median[fi], tp->mode[fi], tp->stddev[fi]);
 	}
       }
     }

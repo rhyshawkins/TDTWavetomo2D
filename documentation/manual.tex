@@ -184,8 +184,8 @@ depthgaussianperturb
 0.050
 \end{verbatim}
 
-The first two lines specify a Laplacian prior with 0.2 width (similar to standard
-deviation). This 0.2 value may need to be adjusted if a fixed Laplacian prior is
+The first two lines specify a Laplacian prior with 0.1 width (similar to standard
+deviation). This 0.1 value may need to be adjusted if a fixed Laplacian prior is
 used in the inversion and birth/death acceptance is poor.
 
 The next line specifies how birth/death proposals are performed, it is
@@ -319,7 +319,9 @@ on the inversion. This option specifies the standard deviation of prior
 width change proposals. If this option is not specified, the prior is fixed
 at the value specified in the prior/proposal file. The recommended
 setting for inversion is a Laplacian prior with the hierarchical prior
-enabled.
+enabled. Using the hierarchical prior is sensitive to outliers so if
+poor inversion results are obtained, try turning off the hierarchical
+prior.
 
 The {\tt -t 100000} specifies the inversion runs for 100000 iterations.
 Burnin and thinning is controlled in the post processing steps than follow.
@@ -820,6 +822,10 @@ FMST, see the documentation accompanying the FMST software.
 Input files are also included in tutorial/fmst used to
 test this functionality.
 
+It is recommended that at this stage, any outliers are removed, that is,
+those paths that have travel time residuals that are significant outliers
+should be removed as these can adversely bias the results.
+
 \subsection{Creating a starting model from the FMST result}
 
 A first step to generating a starting model is to convert the vtx
@@ -830,11 +836,13 @@ which can be used to convert:
 python2 scripts/vtxtoimage.py -i gridc.vtx -o fmst-image.txt
 \end{verbatim}
 
-Once the image is created you can create a starting using another
-program. This program reads in an image and uses a specified
-wavelet transform to generate a model. We can used wavelet
-thresholding to produce a simple model with a reasonable number
-of coefficients. The following is an example command line:
+Once the image is created you can create a starting using the
+{\texttt analyseslicemodel} program. This program reads in an
+image and uses a specified wavelet transform to generate a simpler
+approximate model. This is accomplished using 
+thresholding to remove small wavelet coefficients to retain a simple model
+with a reasonable number of coefficients.
+The following is an example command line:
 
 \begin{verbatim}
 analyseslicemodel -i fmst-image.txt \
@@ -847,12 +855,13 @@ usual image degrees for width and height. The -m option is the mean of
 the image (or the mean velocity of the observations). The -w option is
 the wavelet basis to use and it is recommended that 4 is used as this
 is the smoothest wavelet basis. The -T option specifies the outputted
-model and the -t option specifies the thresholding level.  The larger
-this value, the fewer coefficients will be included in the model. The
-program will also output fmst-threshold.txt.image file which can be
-compared to the inputted fmst-image.txt to ensure that the broad
-features a maintained. The output of the program outputs the number of
-coefficients, the last two lines of the output as an example:
+model and the -t option specifies the thresholding level which will
+need to be tuned.  The larger this value, the fewer coefficients will
+be included in the model. The program will also output
+fmst-threshold.txt.image file which can be compared to the inputted
+fmst-image.txt to ensure that the broad features a maintained. The
+output of the program outputs the number of coefficients, the last two
+lines of the output as an example:
 
 \begin{verbatim}
 Threshold: 0.04 28 coeff
@@ -865,17 +874,23 @@ here, but the basic principle is to choose a value that retains the
 features in original image while having a reasonable number of wavelet
 coefficients.
 
-The {\texttt fmst-threshold.txt} file is in the format of a
-wavelet tree model and can be used as a starting model for
-an inversion. To use this file in a serial inversion,
-you can run
+The last line of the output from {\texttt analyseslicemodel} gives the
+mean deviation which is the best estimate of the width of the Laplacian
+prior and can be used in the {\texttt priorproposal.txt} file. In this
+tutorial example, a value of 0.1 is used whereas the output of
+{\texttt analyseslicemodel} suggests a value closer to 0.05 is more
+appropriate.
+
+The {\texttt fmst-threshold.txt} file is in the format of a wavelet
+tree model and can be used as a starting model for an inversion. To
+use this file in a serial inversion, you can run
 
 \begin{verbatim}
 wavetomo2dfrequencysliceinvert <other options> -I fmst-threshold.txt
 \end{verbatim}
 
-FOr the parallel version of the code, the initial model needs to
-be generated for each process and stored in a directory. As an example
+For the parallel version of the code, the initial model needs to be
+generated for each process and stored in a directory. As an example
 where we have four chains, we could manually generate the files, eg
 
 \begin{verbatim}
@@ -900,7 +915,7 @@ as was manually create above, you can use:
 python2 mkstarting.py -i fmst-threshold.txt -o starting --np 4
 \end{verbatim}
 
-
+where the {\texttt -np} option represents the number of chains.
 
 \appendix
 

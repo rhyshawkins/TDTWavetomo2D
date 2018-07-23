@@ -136,7 +136,16 @@ EXTRADIST = LICENSE \
         tutorial/tutorial_observations.txt \
         tutorial/tutorial_prior.txt \
         tutorial/tutorial_stations.txt \
-	scripts/convertsingleobservations.py
+	tutorial/fmst/fm2dss.in \
+	tutorial/fmst/Makefile \
+	tutorial/fmst/residualss.in \
+	tutorial/fmst/subinvss.in \
+	tutorial/fmst/ttomoss.in \
+	scripts/convertsingleobservations.py \
+	scripts/converttofmst.py \
+	scripts/imagetovtx.py \
+	scripts/mkstarting.py \
+	scripts/vtxtoimage.py
 
 TARGETS = wavetomo2dfrequencyinvert \
 	wavetomo2dfrequencyinvert_pt \
@@ -148,7 +157,6 @@ TARGETS = wavetomo2dfrequencyinvert \
 	postprocess_mean_mpi \
 	postprocess_validate_likelihood \
 	postprocess_acceptance \
-	postprocess_coeff_history \
 	postprocess_khistory \
 	mksynthetic \
 	extractslice \

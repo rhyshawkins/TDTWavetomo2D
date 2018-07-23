@@ -77,7 +77,7 @@ static struct option long_options[] = {
 
 static void usage(const char *pname);
 
-static double *generate_wavelet_matrix(int degreex, int degreey, generic_lift_inverse1d_step_t basis);
+// static double *generate_wavelet_matrix(int degreex, int degreey, generic_lift_inverse1d_step_t basis);
 
 int main(int argc, char *argv[])
 {
@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
   double latmin;
   double latmax;
 
-  int wavelet;
+  // int wavelet;
   
   //
   // Defaults
@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
   latmin = -10.0;
   latmax = 10.0;
 
-  wavelet = 0;
+  // wavelet = 0;
   
   //
   // Command line parameters
@@ -188,9 +188,9 @@ int main(int argc, char *argv[])
       latmax = atof(optarg);
       break;
 
-    case 'w':
-      wavelet = atoi(optarg);
-      break;
+    // case 'w':
+    //   wavelet = atoi(optarg);
+    //   break;
       
     case 'h':
     default:
@@ -261,15 +261,15 @@ static void usage(const char *pname)
 {
 }
 
-static double *generate_wavelet_matrix(int degreex, int degreey, generic_lift_inverse1d_step_t basis)
-{
-  int imagewidth = 2 << degreex;
-  int imageheight = 2 << degreey;
+// static double *generate_wavelet_matrix(int degreex, int degreey, generic_lift_inverse1d_step_t basis)
+// {
+  // int imagewidth = 2 << degreex;
+  // int imageheight = 2 << degreey;
   
-  int N = imagewidth * imageheight;
-  int size = (N*N);
+  // int N = imagewidth * imageheight;
+  // int size = (N*N);
 
-  double *matrix = new double[size];
+  // double *matrix = new double[size];
 
-  
-}
+//   return nullptr;
+// }
