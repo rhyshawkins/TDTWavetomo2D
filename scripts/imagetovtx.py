@@ -36,7 +36,7 @@ if __name__ == '__main__':
     height = 1 << args.degreey
     
     if not args.input is None:
-        image = numpy.loadtxt(args.mean)
+        image = numpy.loadtxt(args.input)
 
         r, c = image.shape
         if r != height:
@@ -75,11 +75,15 @@ if __name__ == '__main__':
             jj = j - 1
             if (jj < 0):
                 jj = 0
-            elif (jj == height):
+            elif (jj >= height):
                 jj = height - 1
                 
-            
-            f.write('%10.6f %10.6f\n' % (image[height - jj - 1, ii], args.error))
+            if args.error <= 0.0:
+                f.write('%15.9f\n' % image[height - jj - 1, ii])
+            else:
+                f.write('%15.6f %10.6f\n' % (image[height - jj - 1, ii], args.error))
+
+        f.write('\n')
 
     f.close()
     

@@ -22,7 +22,7 @@ if __name__ == '__main__':
 
     for i in range(args.np):
 
-        filename = os.path.join(args.output, 'final-model.txt-%03d' % i)
+        filename = os.path.join(args.output, 'final_model.txt-%03d' % i)
 
         shutil.copy(args.input, filename)
 
