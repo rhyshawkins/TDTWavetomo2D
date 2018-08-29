@@ -59,72 +59,7 @@ OBJS = wavetomo2dexception.o \
 MPI_OBJS = 
 
 SRCS = Makefile \
-	analyseslicemodel.cpp \
-	birth.cpp \
-	birthslice.cpp \
-	death.cpp \
-	deathslice.cpp \
-	extractslice.cpp \
-	extractdispersion.cpp \
-	global.cpp \
-	globalslice.cpp \
-	hierarchical.cpp \
-	hierarchicalmodel.cpp \
-	hierarchicalprior.cpp \
-	hierarchicalpriorslice.cpp \
-	hierarchicalslice.cpp \
-	linearweights.hpp \
-	mksynthetic.cpp \
-	postprocess_acceptance.cpp \
-	postprocess_coeff_history.cpp \
-	postprocess_coeff_marginal.cpp \
-	postprocess_khistory.cpp \
-	postprocess_likelihood.cpp \
-	postprocess_mean.cpp \
-	postprocess_mean_mpi.cpp \
-	postprocess_slice_mean.cpp \
-	postprocess_slice_likelihood.cpp \
-	postprocess_slice_mean_mpi.cpp \
-	postprocess_validate_likelihood.cpp \
-	ptexchange.cpp \
-	ptexchangeslice.cpp \
-	resample.cpp \
-	rng.cpp \
-	slicemodellikelihood.cpp \
-	value.cpp \
-	valueslice.cpp \
-	volume.cpp \
-	wavetomo2dexception.cpp \
-	wavetomo2dfrequencyinvert.cpp \
-	wavetomo2dfrequencyinvert_pt.cpp \
-	wavetomo2dfrequencysliceinvert.cpp \
-	wavetomo2dfrequencysliceinvert_pt.cpp \
-	wavetomo2dobservations.cpp \
-	wavetomo2dutil.cpp \
-	birth.hpp \
-	birthslice.hpp \
-	death.hpp \
-	deathslice.hpp \
-	global.hpp \
-	globalslice.hpp \
-	hierarchical.hpp \
-	hierarchicalmodel.hpp \
-	hierarchicalprior.hpp \
-	hierarchicalpriorslice.hpp \
-	hierarchicalslice.hpp \
-	ptexchange.hpp \
-	ptexchangeslice.hpp \
-	resample.hpp \
-	rng.hpp \
-	value.hpp \
-	valueslice.hpp \
-	volume.hpp \
-	wavetomo2dexception.hpp \
-	wavetomo2dobservations.hpp \
-	wavetomo2dutil.hpp \
-	generatemask.cpp \
-	generatematrices.cpp
-
+	$(wildcard *.?pp)
 
 EXTRADIST = LICENSE \
 	README.md \
@@ -169,7 +104,8 @@ TARGETS = wavetomo2dfrequencyinvert \
 	analyseslicemodel \
 	slicemodellikelihood \
 	generatemask \
-	generatematrices
+	generatematrices \
+	sliceoptimizer
 
 all : $(TARGETS)
 
@@ -238,6 +174,9 @@ generatemask : generatemask.o $(OBJS)
 
 generatematrices : generatematrices.o $(OBJS)
 	$(CXX) -o generatematrices generatematrices.o $(OBJS) $(LIBS) $(MPI_LIBS)
+
+sliceoptimizer : sliceoptimizer.o $(OBJS)
+	$(CXX) -o sliceoptimizer sliceoptimizer.o $(OBJS) $(LIBS) $(MPI_LIBS)
 
 %.o : %.cpp
 	$(CXX) $(CXXFLAGS) -o $*.o $*.cpp

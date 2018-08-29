@@ -389,6 +389,55 @@ GlobalSlice::likelihood(double &log_normalization)
 }
 
 double
+GlobalSlice::likelihood_gradient(double &log_normalization)
+{
+  //
+  // Get tree model wavelet coefficients
+  //
+  memset(model, 0, sizeof(double) * size);
+  if (wavetree2d_sub_map_to_array(wt, model, size) < 0) {
+    throw WAVETOMO2DEXCEPTION("Failed to map model to array\n");
+  }
+  
+  //
+  // Inverse wavelet transform
+  //
+  if (generic_lift_inverse2d(model,
+			     width,
+			     height,
+			     width,
+			     workspace,
+			     xywaveletf,
+			     xywaveletf,
+			     SUBTILE) < 0) {
+    throw WAVETOMO2DEXCEPTION("Failed to do inverse transform on coefficients\n");
+  }
+  
+  log_normalization = 0.0;
+
+
+  // Normal likelihood calculation but with dLdI (gradient of likelihood wrt model image)
+  double like = observations->single_frequency_likelihood_gradient(slice,
+								   model,
+								   dLdI,
+								   zoffset[slice],
+								   hierarchical,
+								   residual,
+								   residual_normed,
+								   log_normalization);
+
+  //
+  // Back project dLdI to TDT wavelet coefficients
+  //
+  const multiset_int_double_t *
+wavetree2d_sub_get_S_v(const wavetree2d_sub_t *t);
+
+  return like;
+}
+
+
+
+double
 GlobalSlice::hierarchical_likelihood(double proposed_lambda_scale,
 				     double &log_normalization)
 {

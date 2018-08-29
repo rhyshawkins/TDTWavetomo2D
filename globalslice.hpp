@@ -91,6 +91,8 @@ public:
 			  double &log_normalization);
 
   double likelihood(double &log_normalization);
+
+  double likelihood_gradient(double &log_normalization);
   
   double hierarchical_likelihood(double proposed_lambda_scale,
 				 double &log_hierarchical_normalization);
