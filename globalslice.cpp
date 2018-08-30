@@ -129,7 +129,9 @@ GlobalSlice::GlobalSlice(const char *filename,
   trace_sizes(nullptr),
   residual_offsets(nullptr),
   residual_sizes(nullptr),
-  cov_n(-1)
+  cov_n(-1),
+  dLdI(nullptr),
+  wtmapper(nullptr)
 {
   if (degreex < 0 || degreex >= 16 ||
       degreey < 0 || degreey >= 16 ||

@@ -54,6 +54,8 @@ extern "C" {
 #include "hierarchicalmodel.hpp"
 #include "wavetomo2dobservations.hpp"
 
+#include "wavetreemapper.hpp"
+
 class GlobalSlice {
 public:
 
@@ -221,6 +223,12 @@ public:
   std::vector<double*> cov_delta;
   std::vector<double*> cov_mu;
   std::vector<double*> cov_sigma;
+
+  //
+  // Gradient
+  //
+  double *dLdI;
+  WavetreeMapper *wtmapper;
 
 };
 

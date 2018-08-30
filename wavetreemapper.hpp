@@ -2,10 +2,22 @@
 #ifndef wavetreemapper_hpp
 #define wavetreemapper_hpp
 
+#include <map>
+
+extern "C" {
+#include "wavetree2d_sub.h"
+};
+  
+#include "wavetomo2dobservations.hpp"
+
 class WavetreeMapper {
 public:
 
-  WavetreeMapper(int _kmax)
+  class WavetreeMap;
+  
+  static constexpr double IMAGE_EPSILON = 1.0e-9;
+
+  WavetreeMapper(int _kmax) :
     kmax(_kmax),
     indices(new int[_kmax]),
     values(new double[_kmax]),
@@ -16,24 +28,24 @@ public:
   ~WavetreeMapper()
   {
     for (auto &m : mappers) {
-      delete m;
+      delete m->second;
     }
   }
 
-  void build_mapper(wavetree_sub_t *tree,
-		    int width,
-		    int height,
-		    generic_lift_inverse1d_step_t xwaveletf,
-		    generic_lift_inverse1d_step_t ywaveletf,
-		    double *workspace,
-		    int index)
+  WavetreeMap *build_mapper(wavetree2d_sub_t *tree,
+			    int width,
+			    int height,
+			    double *workspace,
+			    int index,
+			    wavetomo2dobservations<LonLat<>> *obs,
+			    double zoffset)
   {
     int size = width * height;
-    double *image = new double[size];
+    double *model = new double[size];
 
-    memset(image, 0, sizeof(double) * size);
+    memset(model, 0, sizeof(double) * size);
 
-    if (wavetree2d_sub_map_impulse_to_array(tree, index, image, size) < 0) {
+    if (wavetree2d_sub_map_impulse_to_array(tree, index, model, size) < 0) {
       throw WAVETOMO2DEXCEPTION("Failed to create impulse model image\n");
     }
 
@@ -52,12 +64,22 @@ public:
     }
 
     //
+    // Compute actual image
+    //
+    int vwidth;
+    int vheight;
+    const double *vimage = obs->predict_image(model, zoffset, vwidth, vheight);
+    if (vimage == nullptr) {
+      throw WAVETOMO2DEXCEPTION("Image prediction failed");
+    }
+
+    //
     // Check if we can use a bounding box to remove large regions of zeros
     //
     int x0 = 0;
-    int x1 = width - 1;
+    int x1 = vwidth - 1;
     int y0 = 0;
-    int y1 = height - 1;
+    int y1 = vheight - 1;
     bool shrunk;
     
     do {
@@ -66,7 +88,7 @@ public:
       
       bool shrinkable = true;
       for (int y = y0; y <= y1; y ++) {
-	if (fabs(image[y * width + x0]) > IMAGE_EPSILON) {
+	if (fabs(vimage[y * vwidth + x0]) > IMAGE_EPSILON) {
 	  shrinkable = false;
 	  break;
 	}
@@ -78,7 +100,7 @@ public:
 
       shrinkable = true;
       for (int y = y0; y <= y1; y ++) {
-	if (fabs(image[y * width + x1]) > IMAGE_EPSILON) {
+	if (fabs(vimage[y * vwidth + x1]) > IMAGE_EPSILON) {
 	  shrinkable = false;
 	  break;
 	}
@@ -90,7 +112,7 @@ public:
 
       shrinkable = true;
       for (int x = x0; x <= x1; x ++) {
-	if (fabs(image[y0 * width + x]) > IMAGE_EPSILON) {
+	if (fabs(vimage[y0 * vwidth + x]) > IMAGE_EPSILON) {
 	  shrinkable = false;
 	  break;
 	}
@@ -102,7 +124,7 @@ public:
       
       shrinkable = true;
       for (int x = x0; x <= x1; x ++) {
-	if (fabs(image[y1 * width + x]) > IMAGE_EPSILON) {
+	if (fabs(vimage[y1 * vwidth + x]) > IMAGE_EPSILON) {
 	  shrinkable = false;
 	  break;
 	}
@@ -119,23 +141,19 @@ public:
       
     } while (shrunk);
 
-    //
-    // Note of caution here, the image allocated above is passed to
-    // one of the two classes and is deleted in their destructors
-    //
-    if (x0 > 0 || x1 < (width - 1) ||
-	y0 > 0 || y1 < (height - 1)) {
+    if (x0 > 0 || x1 < (vwidth - 1) ||
+	y0 > 0 || y1 < (vheight - 1)) {
 
-      return new WavetreeMapBounded(width, height, x0, x1, y0, y1, image);
+      return new WavetreeMapBounded(vwidth, vheight, x0, x1, y0, y1, vimage);
 
     } else {
 
-      return new WavetreeMapFull(width, height, image);
+      return new WavetreeMapFull(vwidth, vheight, vimage);
 
     }
   }
 
-  void backproject(wavetree_sub_t *tree,
+  void backproject(wavetree2d_sub_t *tree,
 		   double *dLdI)
   {
     if (wavetree2d_sub_get_model(tree,
@@ -153,10 +171,10 @@ public:
       if (j == mappers.end()) {
 
 	p = build_mapper(tree, indices[i]);
-	mappers.insert(indices[i], p);
+	mappers.insert(std::pair<int, WavetreeMap*>(indices[i], p));
 
       } else {
-	p = j.second;
+	p = j->second;
       }
 
       gradients[i] = p->backproject(dLdI);
@@ -184,14 +202,16 @@ public:
 
     WavetreeMapFull(int _width,
 		    int _height,
-		    double *_image)
+		    const double *_image) :
       size(_width * _height),
-      image(_image)
+      image(new double[_width * _height])
     {
+      memcpy(image, _image, size);
     }
 
     virtual ~WavetreeMapFull()
     {
+      delete [] image;
     }
     
     virtual double backproject(const double *dLdI) const
@@ -211,11 +231,11 @@ public:
   class WavetreeMapBounded : public WavetreeMap {
   public:
 
-    WavetreeMapFull(int _width,
-		    int _height,
-		    int _x0, int _x1,
-		    int _y0, int _y1,
-		    double *_image)
+    WavetreeMapBounded(int _width,
+		       int _height,
+		       int _x0, int _x1,
+		       int _y0, int _y1,
+		       const double *_image) :
       width(_width),
       height(_height),
       x0(_x0),
@@ -227,8 +247,8 @@ public:
       image(nullptr)
     {
       image = new double[subwidth * subheight];
-      for (y = _y0; y <= _y1; y ++) {
-	for (x = _x0; x <= _x1; x ++) {
+      for (int y = _y0; y <= _y1; y ++) {
+	for (int x = _x0; x <= _x1; x ++) {
 
 	  image[(y - _y0) * subwidth + (x - _x0)] = _image[y * width + x];
 
@@ -238,7 +258,7 @@ public:
       delete [] _image;
     }
 
-    virtual ~WavetreeMapFull()
+    virtual ~WavetreeMapBounded()
     {
       delete [] image;
     }
@@ -246,8 +266,8 @@ public:
     virtual double backproject(const double *dLdI) const
     {
       double w = 0.0;
-      for (y = y0; y <= y1; y ++) {
-	for (x = x0; x <= x1; x ++) {
+      for (int y = y0; y <= y1; y ++) {
+	for (int x = x0; x <= x1; x ++) {
 
 	  w += image[(y - y0) * subwidth + (x - x0)] * dLdI[y * width + x];
 
@@ -264,7 +284,14 @@ public:
     double *image;
     
   };
-    
-  std::map<int, WaveTreeMap *> mappers;
+
+
+  int kmax;
+  int *indices;
+  double *values;
+  double *gradients;
+  std::map<int, WavetreeMap *> mappers;
 
 };
+
+#endif // wavetreemapper_hpp

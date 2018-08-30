@@ -517,6 +517,20 @@ public:
     }
   }
 
+  const double *predict_image(const double *model,
+			      double offset,
+			      int &_width,
+			      int &_height)
+  {
+    if (!upscale(model, offset, winverse, super_image)) {
+      return nullptr;
+    }
+
+    width = super_width;
+    height = super_height;
+    return super_image;
+  }
+  
   bool single_frequency_predictions(size_t frequency_index,
 				    const double *model,
 				    double offset)
@@ -605,6 +619,84 @@ public:
 			     log_normalization);
 
 	} else {
+	  *res = tp->mean[frequency_index] - tp->pred[frequency_index];
+	  
+	  
+	  sum += hmodel->nll(res,
+			     &tp->stddev[frequency_index],
+			     1,
+			     resn,
+			     log_normalization);
+	}
+	
+	res ++;
+	resn ++;
+      }
+    }
+
+    return sum;
+  }
+
+  bool single_frequency_likelihood_gradient(size_t frequency_index,
+					    const double *model,
+					    double *dLdI,
+					    double offset, 
+					    const hierarchicalmodel *hmodel,
+					    double *residuals,
+					    double *residuals_normed,
+					    double &log_normalization)
+  {
+    double *res = residuals;
+    double *resn = residuals_normed;
+    double sum;
+
+    sum = 0.0;
+
+    if (!upscale(model, offset, winverse, super_image)) {
+      return false;
+    }
+
+    //
+    // Second loop for computing residuals and likelihood
+    //
+    if (!linear) {
+      velocity->set_field(super_image);
+    }
+
+    for (auto t: traces) {
+
+      if (!linear) {
+	t->traveltime.construct_traveltime_field();
+      }
+      
+      for (auto tp: t->paths) {
+
+	if (traveltime) {
+
+	  if (linear) {
+	    tp->pred[frequency_index] = tp->linearweights.evaluate_velocityfield(super_image);
+	    
+	  } else {
+	    tp->pred[frequency_index] = t->traveltime.get_traveltime(tp->coord);
+	  }
+
+	  *res = tp->tt_obs[frequency_index] - tp->pred[frequency_index];
+	  
+	  
+	  sum += hmodel->nll(res,
+			     &tp->tt_stddev[frequency_index],
+			     1,
+			     resn,
+			     log_normalization);
+
+	} else {
+	  if (linear) {
+	    tp->pred[frequency_index] =
+	      tp->distkm/tp->linearweights.evaluate_velocityfield(super_image);
+	  } else {
+	    tp->pred[frequency_index] = tp->distkm/t->traveltime.get_traveltime(tp->coord);
+	  }
+
 	  *res = tp->mean[frequency_index] - tp->pred[frequency_index];
 	  
 	  
