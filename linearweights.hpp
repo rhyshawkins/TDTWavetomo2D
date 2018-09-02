@@ -169,6 +169,15 @@ public:
     return ttime;
   }
 
+  void backproject(double tt, double dist, double weight, double *dLdI) const
+  {
+    double s = tt * tt/dist;
+    
+    for (auto &w : weights) {
+      dLdI[w.idx] += weight * s * w.weight;
+    }
+  }
+
   void clear()
   {
     weights.clear();

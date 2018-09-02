@@ -156,6 +156,32 @@ independentgaussianhierarchicalmodel::nll(const double *residuals,
   return sum;
 }
 
+double
+independentgaussianhierarchicalmodel::nll_gradient(const double *residuals,
+						   const double *sigma,
+						   size_t N,
+						   double *residuals_normed,
+						   double *weight,
+						   double &log_normalization) const
+{
+  double sum = 0.0;
+  double n;
+  
+  for (size_t i = 0; i < N; i ++) {
+
+    n = sigma[i] * lambda;
+
+    residuals_normed[i] = residuals[i]/n;
+    weight[i] = residuals_normed[i]/n;
+
+    sum += residuals_normed[i] * residuals_normed[i] * 0.5;
+    log_normalization += log(n);
+
+  }
+
+  return sum;
+}
+
 hierarchicalmodel *
 independentgaussianhierarchicalmodel::read(FILE *fp)
 {

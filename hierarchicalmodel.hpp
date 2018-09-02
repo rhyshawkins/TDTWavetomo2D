@@ -52,6 +52,13 @@ public:
 		     double *residuals_normed,
 		     double &log_normalization) const = 0;
 
+  virtual double nll_gradient(const double *residual,
+			      const double *sigma,
+			      size_t N,
+			      double *residuals_normed,
+			      double *weight,
+			      double &log_normalization) const = 0;
+
   static hierarchicalmodel *load(const char *filename);
 
   typedef hierarchicalmodel* (*reader_function_t)(FILE *fp);
@@ -81,6 +88,13 @@ public:
 		     size_t N,
 		     double *residuals_normed,
 		     double &log_normalization) const;
+
+  virtual double nll_gradient(const double *residual,
+			      const double *sigma,
+			      size_t N,
+			      double *residuals_normed,
+			      double *weight,
+			      double &log_normalization) const;
 
   static hierarchicalmodel *read(FILE *fp);
 

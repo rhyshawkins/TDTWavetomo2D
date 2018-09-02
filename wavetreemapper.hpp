@@ -28,13 +28,27 @@ public:
   ~WavetreeMapper()
   {
     for (auto &m : mappers) {
-      delete m->second;
+      delete m.second;
     }
   }
 
+  void saveimage(const char *filename, const double *image, int w, int h)
+  {
+    FILE *fp = fopen(filename, "w");
+    for (int j = 0; j < h; j ++) {
+      for (int i = 0; i < w; i ++) {
+	fprintf(fp, "%16.9e ", image[j * w + i]);
+      }
+      fprintf(fp, "\n");
+    }
+    fclose(fp);
+  }
+  
   WavetreeMap *build_mapper(wavetree2d_sub_t *tree,
 			    int width,
 			    int height,
+			    generic_lift_inverse1d_step_t xwaveletf,
+			    generic_lift_inverse1d_step_t ywaveletf,
 			    double *workspace,
 			    int index,
 			    wavetomo2dobservations<LonLat<>> *obs,
@@ -48,6 +62,14 @@ public:
     if (wavetree2d_sub_map_impulse_to_array(tree, index, model, size) < 0) {
       throw WAVETOMO2DEXCEPTION("Failed to create impulse model image\n");
     }
+
+    double maxc = 0.0;
+    for (int i = 0; i < size; i ++) {
+      if (model[i] > maxc) {
+	maxc = model[i];
+      }
+    }
+    
 
     //
     // Inverse wavelet transform
@@ -63,14 +85,29 @@ public:
       throw WAVETOMO2DEXCEPTION("Failed to do inverse transform on coefficients\n");
     }
 
+    double maxm = 0.0;
+    for (int i = 0; i < size; i ++) {
+      if (model[i] > maxm) {
+	maxm = model[i];
+      }
+    }
+
     //
-    // Compute actual image
+    // Compute actual image (upscaling)
     //
     int vwidth;
     int vheight;
-    const double *vimage = obs->predict_image(model, zoffset, vwidth, vheight);
+    const double *vimage = obs->predict_image(model, 0.0, vwidth, vheight);
     if (vimage == nullptr) {
       throw WAVETOMO2DEXCEPTION("Image prediction failed");
+    }
+
+    double maxi = 0.0;
+    int vsize = vwidth * vheight;
+    for (int i = 0; i < vsize; i ++) {
+      if (vimage[i] > maxi) {
+	maxi = vimage[i];
+      }
     }
 
     //
@@ -136,7 +173,9 @@ public:
 
       if (x1 <= x0 ||
 	  y1 <= y0) {
-	throw WAVETOMO2DEXCEPTION("Zero impulse response for coeff %d\n", index);
+	saveimage("model.txt", model, width, height);
+	saveimage("upscale.txt", vimage, vwidth, vheight);
+	throw WAVETOMO2DEXCEPTION("Zero impulse response for coeff %d %16.9e %16.9e %16.9e\n", index, maxc, maxm, maxi);
       }
       
     } while (shrunk);
@@ -154,8 +193,17 @@ public:
   }
 
   void backproject(wavetree2d_sub_t *tree,
+		   int width,
+		   int height,
+		   generic_lift_inverse1d_step_t xwaveletf,
+		   generic_lift_inverse1d_step_t ywaveletf,
+		   double *workspace,
+		   wavetomo2dobservations<LonLat<>> *obs,
+		   double zoffset,
 		   double *dLdI)
   {
+    int k;
+    
     if (wavetree2d_sub_get_model(tree,
 				 kmax,
 				 indices,
@@ -170,7 +218,13 @@ public:
       WavetreeMap *p = nullptr;
       if (j == mappers.end()) {
 
-	p = build_mapper(tree, indices[i]);
+	p = build_mapper(tree,
+			 width, height,
+			 xwaveletf, ywaveletf,
+			 workspace,
+			 indices[i],
+			 obs,
+			 zoffset);
 	mappers.insert(std::pair<int, WavetreeMap*>(indices[i], p));
 
       } else {
@@ -178,7 +232,7 @@ public:
       }
 
       gradients[i] = p->backproject(dLdI);
-      
+      printf("Gradient %d: %16.9e\n", i, gradients[i]);
     }
   }
 

@@ -130,6 +130,9 @@ GlobalSlice::GlobalSlice(const char *filename,
   residual_offsets(nullptr),
   residual_sizes(nullptr),
   cov_n(-1),
+  super_image_width(-1),
+  super_image_height(-1),
+  super_image_size(-1),
   dLdI(nullptr),
   wtmapper(nullptr)
 {
@@ -419,6 +422,7 @@ GlobalSlice::likelihood_gradient(double &log_normalization)
 
 
   // Normal likelihood calculation but with dLdI (gradient of likelihood wrt model image)
+  memset(dLdI, 0, sizeof(double) * super_image_size);
   double like = observations->single_frequency_likelihood_gradient(slice,
 								   model,
 								   dLdI,
@@ -431,8 +435,15 @@ GlobalSlice::likelihood_gradient(double &log_normalization)
   //
   // Back project dLdI to TDT wavelet coefficients
   //
-  const multiset_int_double_t *
-wavetree2d_sub_get_S_v(const wavetree2d_sub_t *t);
+  wtmapper->backproject(wt,
+			width,
+			height,
+			xywaveletf,
+			xywaveletf,
+			workspace,
+			observations,
+			zoffset[slice],
+			dLdI);
 
   return like;
 }
@@ -1003,4 +1014,15 @@ void GlobalSlice::set_max_depth(int md)
   printf("New   maxk: %d\n", kmax);
   
 
+}
+
+bool
+GlobalSlice::initialize_gradient()
+{
+  super_image_size = observations->image_size(super_image_width, super_image_height);
+
+  dLdI = new double[super_image_size];
+  wtmapper = new WavetreeMapper(kmax + 1);
+  
+  return true;
 }

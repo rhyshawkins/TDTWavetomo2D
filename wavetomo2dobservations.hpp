@@ -517,6 +517,14 @@ public:
     }
   }
 
+  int image_size(int &_width,
+		 int &_height) const
+  {
+    _width = super_width;
+    _height = super_height;
+    return width * height;
+  }
+		 
   const double *predict_image(const double *model,
 			      double offset,
 			      int &_width,
@@ -526,8 +534,8 @@ public:
       return nullptr;
     }
 
-    width = super_width;
-    height = super_height;
+    _width = super_width;
+    _height = super_height;
     return super_image;
   }
   
@@ -619,6 +627,7 @@ public:
 			     log_normalization);
 
 	} else {
+	  // printf("N %10.6f %10.6f\n", tp->pred[frequency_index], tp->mean[frequency_index]);
 	  *res = tp->mean[frequency_index] - tp->pred[frequency_index];
 	  
 	  
@@ -637,14 +646,14 @@ public:
     return sum;
   }
 
-  bool single_frequency_likelihood_gradient(size_t frequency_index,
-					    const double *model,
-					    double *dLdI,
-					    double offset, 
-					    const hierarchicalmodel *hmodel,
-					    double *residuals,
-					    double *residuals_normed,
-					    double &log_normalization)
+  double single_frequency_likelihood_gradient(size_t frequency_index,
+					      const double *model,
+					      double *dLdI,
+					      double offset, 
+					      const hierarchicalmodel *hmodel,
+					      double *residuals,
+					      double *residuals_normed,
+					      double &log_normalization)
   {
     double *res = residuals;
     double *resn = residuals_normed;
@@ -690,21 +699,46 @@ public:
 			     log_normalization);
 
 	} else {
+	  //
+	  // Compute prediction
+	  //
+	  double tt;
 	  if (linear) {
-	    tp->pred[frequency_index] =
-	      tp->distkm/tp->linearweights.evaluate_velocityfield(super_image);
+
+	    tt = tp->linearweights.evaluate_velocityfield(super_image);
+	    tp->pred[frequency_index] = tp->distkm/tt;
+	    
 	  } else {
-	    tp->pred[frequency_index] = tp->distkm/t->traveltime.get_traveltime(tp->coord);
+	    tt = t->traveltime.get_traveltime(tp->coord);
+	    tp->pred[frequency_index] = tp->distkm/tt;
 	  }
 
+	  //
+	  // Compute Likelihood and Weight
+	  //
 	  *res = tp->mean[frequency_index] - tp->pred[frequency_index];
 	  
+
+	  double weight[1];
+	  sum += hmodel->nll_gradient(res,
+				      &tp->stddev[frequency_index],
+				      1,
+				      resn,
+				      weight,
+				      log_normalization);
+
+	  //
+	  // Back project to dLdI
+	  //
+	  if (linear) {
+
+	    tp->linearweights.backproject(tt, tp->distkm, weight[0], dLdI);
+
+	  } else {
+
+	  }
 	  
-	  sum += hmodel->nll(res,
-			     &tp->stddev[frequency_index],
-			     1,
-			     resn,
-			     log_normalization);
+	  
 	}
 	
 	res ++;

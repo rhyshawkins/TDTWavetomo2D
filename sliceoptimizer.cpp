@@ -285,6 +285,17 @@ int main(int argc, char *argv[])
                      wavelet_xy,
                      linear);
 
+  if (!global.initialize_gradient()) {
+    fprintf(stderr, "error: failed to initialise gradient calculation\n");
+    return -1;
+  }
+
+  double like, norm;
+
+  like = global.likelihood_gradient(norm);
+
+  printf("Initial Likelihood: %10.6f (%10.6f) Linear = %d\n", like, norm, (int)linear);
+
   return 0;
 }
 
