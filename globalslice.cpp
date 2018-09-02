@@ -336,6 +336,11 @@ GlobalSlice::~GlobalSlice()
   hnk_destroy(hnk);
   wavetree2d_sub_destroy(wt);
   wavetree_pp_destroy(proposal);
+
+  if (dLdI != nullptr) {
+    delete [] dLdI;
+    delete wtmapper;
+  }
 }
 
 double
@@ -431,6 +436,8 @@ GlobalSlice::likelihood_gradient(double &log_normalization)
 								   residual,
 								   residual_normed,
 								   log_normalization);
+
+  wtmapper->saveimage("dLdI.txt", dLdI, super_image_width, super_image_height);
 
   //
   // Back project dLdI to TDT wavelet coefficients

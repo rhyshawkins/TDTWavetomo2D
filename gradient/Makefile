@@ -13,7 +13,7 @@ constant_0.1.txt :
 	-f 0.05 -F 0.5 \
 	-x 8 -y 8 -z 1 \
 	-C \
-	-W 4 -H 4 \
+	-W 2 -H 1 \
 	-s 0.1
 
 prior.txt :

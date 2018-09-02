@@ -63,14 +63,6 @@ public:
       throw WAVETOMO2DEXCEPTION("Failed to create impulse model image\n");
     }
 
-    double maxc = 0.0;
-    for (int i = 0; i < size; i ++) {
-      if (model[i] > maxc) {
-	maxc = model[i];
-      }
-    }
-    
-
     //
     // Inverse wavelet transform
     //
@@ -85,13 +77,6 @@ public:
       throw WAVETOMO2DEXCEPTION("Failed to do inverse transform on coefficients\n");
     }
 
-    double maxm = 0.0;
-    for (int i = 0; i < size; i ++) {
-      if (model[i] > maxm) {
-	maxm = model[i];
-      }
-    }
-
     //
     // Compute actual image (upscaling)
     //
@@ -100,14 +85,6 @@ public:
     const double *vimage = obs->predict_image(model, 0.0, vwidth, vheight);
     if (vimage == nullptr) {
       throw WAVETOMO2DEXCEPTION("Image prediction failed");
-    }
-
-    double maxi = 0.0;
-    int vsize = vwidth * vheight;
-    for (int i = 0; i < vsize; i ++) {
-      if (vimage[i] > maxi) {
-	maxi = vimage[i];
-      }
     }
 
     //
@@ -175,7 +152,7 @@ public:
 	  y1 <= y0) {
 	saveimage("model.txt", model, width, height);
 	saveimage("upscale.txt", vimage, vwidth, vheight);
-	throw WAVETOMO2DEXCEPTION("Zero impulse response for coeff %d %16.9e %16.9e %16.9e\n", index, maxc, maxm, maxi);
+	throw WAVETOMO2DEXCEPTION("Zero impulse response for coeff %d\n", index);
       }
       
     } while (shrunk);
@@ -183,10 +160,12 @@ public:
     if (x0 > 0 || x1 < (vwidth - 1) ||
 	y0 > 0 || y1 < (vheight - 1)) {
 
+      printf("Bounded map created\n");
       return new WavetreeMapBounded(vwidth, vheight, x0, x1, y0, y1, vimage);
 
     } else {
 
+      printf("Full map created\n");
       return new WavetreeMapFull(vwidth, vheight, vimage);
 
     }
@@ -260,7 +239,7 @@ public:
       size(_width * _height),
       image(new double[_width * _height])
     {
-      memcpy(image, _image, size);
+      memcpy(image, _image, size * sizeof(double));
     }
 
     virtual ~WavetreeMapFull()

@@ -292,9 +292,32 @@ int main(int argc, char *argv[])
 
   double like, norm;
 
+  int indices[1] = { 0 };
+  double values[1] = {0.0};
+  int n = 1;
+  double h = 1.0e-3;
+  wavetree2d_sub_set_model(global.wt, indices, values, n);
+
   like = global.likelihood_gradient(norm);
 
-  printf("Initial Likelihood: %10.6f (%10.6f) Linear = %d\n", like, norm, (int)linear);
+  values[0] = h;
+  
+  printf("Initial Likelihood: %16.9e (%10.6f) Linear = %d\n", like, norm, (int)linear);
+
+  wavetree2d_sub_set_model(global.wt, indices, values, n);
+
+  like = global.likelihood_gradient(norm);
+
+  printf("Initial Likelihood: %16.9e (%10.6f) Linear = %d\n", like, norm, (int)linear);
+
+  values[0] = -h;
+  
+  wavetree2d_sub_set_model(global.wt, indices, values, n);
+
+  like = global.likelihood_gradient(norm);
+
+  printf("Initial Likelihood: %16.9e (%10.6f) Linear = %d\n", like, norm, (int)linear);
+
 
   return 0;
 }

@@ -169,12 +169,14 @@ public:
     return ttime;
   }
 
-  void backproject(double tt, double dist, double weight, double *dLdI) const
+  void backproject(double tt, double dist, double weight, const double *image, double *dLdI) const
   {
-    double s = tt * tt/dist;
+    double s = (tt * tt)/dist;
+
+    printf("bp: %16.9e %16.9e %16.9e %16.9e\n", tt, dist, weight, s);
     
     for (auto &w : weights) {
-      dLdI[w.idx] += weight * s * w.weight;
+      dLdI[w.idx] += weight * s * w.weight/(image[w.idx] * image[w.idx]);
     }
   }
 
