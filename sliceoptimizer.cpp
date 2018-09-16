@@ -63,6 +63,8 @@ static struct option long_options[] = {
 
 static void usage(const char *pname);
 
+void initialise_birth_tree(wavetree2d_sub_t *gwt, int maxdepth, wavetree2d_sub_t *wt);
+
 int main(int argc, char *argv[])
 {
   int c;
@@ -290,6 +292,10 @@ int main(int argc, char *argv[])
     return -1;
   }
 
+  wavetree2d_sub_t *wt_birth = wavetree2d_sub_create(degreex, degreey, 0.0);
+
+  initialise_birth_tree(global.wt, global.treemaxdepth, wt_birth);
+
   double like, norm;
 
   int indices[1] = { 0 };
@@ -318,7 +324,10 @@ int main(int argc, char *argv[])
 
   printf("Initial Likelihood: %16.9e (%10.6f) Linear = %d\n", like, norm, (int)linear);
 
-
+  //
+  // Loop through S_b
+  // wavetree2d_sub_get_S_b(const wavetree2d_sub_t *t)
+  //
   return 0;
 }
 
@@ -356,3 +365,34 @@ static void usage(const char *pname)
           pname);
 }
 
+void initialise_birth_tree(wavetree2d_sub_t *gwt, int maxdepth, wavetree2d_sub_t *wt)
+{
+  //
+  // Clone wavetree
+  //
+  wavetree2d_sub_set_from_S_v(wt, wavetree2d_sub_get_S_v(gwt));
+
+  //
+  // Add all birthable nodes
+  //
+  const multiset_int_t *S_b = wavetree2d_sub_get_S_b(gwt);
+
+  for (int d = 0; d <= maxdepth; d ++) {
+
+    int c = multiset_int_depth_count(S_b, d);
+    if (c > 0) {
+
+      for (int i = 0; i < c; i ++) {
+
+	int idx;
+	
+	multiset_int_nth_element(S_b, d, i, &idx);
+
+	//
+	// Add d, idx to wavetree
+	//
+
+      }
+    }
+  }
+}
