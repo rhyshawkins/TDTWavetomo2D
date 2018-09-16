@@ -14,7 +14,7 @@ constant_0.1.txt :
 	-x 8 -y 8 -z 1 \
 	-C \
 	-W 2 -H 1 \
-	-s 0.1
+	-s 1.0
 
 prior.txt :
 	echo "laplace" > $@

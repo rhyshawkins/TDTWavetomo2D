@@ -732,7 +732,7 @@ public:
 	  //
 	  if (linear) {
 
-	    tp->linearweights.backproject(tt, tp->distkm, weight[0], super_image, dLdI);
+	    tp->linearweights.backproject(tt, tp->distkm, weight[0], super_image, offset, dLdI);
 
 	  } else {
 
