@@ -22,6 +22,8 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--error', type = float, default = 0.1, help = 'Grid error')
 
     parser.add_argument('-o', '--output', type = str, required = True, help = 'Output file')
+
+    parser.add_argument('-f', '--flip', action = 'store_true', default = False, help = 'Vertically flip image')
     
     args = parser.parse_args()
 
@@ -45,6 +47,10 @@ if __name__ == '__main__':
         if c != width:
             width = c
             print 'Warning: width adjusted to %d' % width
+
+        if args.flip:
+            image = numpy.flipud(image)
+            
     else:
         image = args.mean * numpy.ones((height, width))
 
