@@ -292,8 +292,8 @@ private:
       }
     }
     
-    ulat = ymax - (double)((int)(c1/width) )*(ymax - ymin)/(double)height;
-    blat = ymax - (double)(1 + (int)(c1/width))*(ymax - ymin)/(double)height;
+    ulat = ymin + (double)(1 + (int)(c1/width) )*(ymax - ymin)/(double)height;
+    blat = ymin + (double)((int)(c1/width))*(ymax - ymin)/(double)height;
     
     if ((y0 == ulat) || (y0 == blat)) {
       /*
@@ -576,7 +576,8 @@ private:
     int j;
     
     i = (int)floor((x - xmin)/(xmax - xmin) * (double)width);
-    j = (int)floor((ymax - y)/(ymax - ymin) * (double)height);
+    //j = (int)floor((ymax - y)/(ymax - ymin) * (double)height);
+    j = (int)floor((y - ymin)/(ymax - ymin) * (double)height);
     
     if (i < 0 || i >= width) {
       return -1;
