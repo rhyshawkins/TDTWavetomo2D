@@ -183,7 +183,7 @@ def remove_observation(stations, observations, A, B):
 
         pA, pB, _, _, _, _, _ = obs
 
-        if pA == A and pB == B:
+        if (pA == A and pB == B) or (pB == A and pA == B):
             continue
 
         if pA == A or pB == A:

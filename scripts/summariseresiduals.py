@@ -81,13 +81,32 @@ if __name__ == '__main__':
 
 
     indices = numpy.where(numpy.abs(meannr) > 3.0)[0]
-    for i in indices:
-        print A[i], B[i], meannr[i]
 
-    print numpy.mean(meannr), numpy.std(meannr), ndata
-    print '3.0: ', numpy.where(numpy.abs(meannr) > 3.0)[0].size, float(ndata) / 370.398
-    print '3.3: ', numpy.where(numpy.abs(meannr) > 3.290527)[0].size, float(ndata) / 1000.0
-    print '4.0: ', numpy.where(numpy.abs(meannr) > 4.0)[0].size, float(ndata) / 15787.0
+    t = zip(numpy.abs(meannr[indices]), indices)
+    t.sort()
+    _, sindices = zip(*t)
+
+    print 'Outliers'
+    print '-' * 60
+    for i in sindices:
+        print '%20s %20s %10.6f' % (A[i], B[i], meannr[i])
+    print '-' * 60
+
+    print 'Mean Normed Residual: %16.9e' % numpy.mean(meannr)
+    print 'Std. Dev            : %16.9e (%d)' % (numpy.std(meannr), ndata)
+
+    print '%19s : %10s : %10s' % ('Threshold', 'Count', 'Expected')
+    print '%19.3f : %10d : %10.6f' % (3.0,
+                                      numpy.where(numpy.abs(meannr) > 3.0)[0].size,
+                                      float(ndata) / 370.398)
+    
+    print '%19.3f : %10d : %10.6f' % (3.291,
+                                      numpy.where(numpy.abs(meannr) > 3.290527)[0].size,
+                                      float(ndata) / 1000.0)
+
+    print '%19.3f : %10d : %10.6f' % (4.0,
+                                      numpy.where(numpy.abs(meannr) > 4.0)[0].size,
+                                      float(ndata) / 15787.0)
     
     P.show()
         

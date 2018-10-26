@@ -98,9 +98,11 @@ public:
 		       double x1, double y1)
   {
     //
-    // Compute a reasonable threshold distance between points
+    // Compute a reasonable threshold distance between points (try to make line
+    // segments between 1 and 2 cell widths)
     //
-    double threshold = 1.5 * (xmax - xmin)/(double)width * M_PI/180.0 * radius;
+    double rcentre = radius * cos((ymax + ymin)/2.0 * M_PI/180.0);
+    double threshold = 1.5 * (xmax - xmin)/(double)width * M_PI/180.0 * rcentre;
 
     if (gc_dist(x0, y0, x1, y1, radius) < threshold) {
       

@@ -76,11 +76,7 @@ EXTRADIST = LICENSE \
 	tutorial/fmst/residualss.in \
 	tutorial/fmst/subinvss.in \
 	tutorial/fmst/ttomoss.in \
-	scripts/convertsingleobservations.py \
-	scripts/converttofmst.py \
-	scripts/imagetovtx.py \
-	scripts/mkstarting.py \
-	scripts/vtxtoimage.py \
+	$(wildcard scripts/*.py) \
 	slurm/example_parallel.slurm \
 	pbs/pbs_example_parallel.sh
 
