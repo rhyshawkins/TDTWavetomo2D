@@ -41,11 +41,20 @@ def load_residuals(filename):
 
     return data
 
+def filter_files(files, chains):
+    if chains <= 0:
+        return files
+
+    else:
+        return filter(lambda x: int(x[-3:]) < chains, files)
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-i', '--input', type = str, required = True, help = 'Input file(s)')
+
+    parser.add_argument('-c', '--chains', type = int, default = -1, help = 'No. chains (at T = 1)')
 
     args = parser.parse_args()
 
@@ -53,7 +62,9 @@ if __name__ == '__main__':
     if os.path.exists(args.input):
         files = [args.input]
     else:
-        files = glob.glob(args.input + '-???')
+        files = filter_files(glob.glob(args.input + '-???'), args.chains)
+        
+        
 
     if len(files) == 0:
         print 'No files'
