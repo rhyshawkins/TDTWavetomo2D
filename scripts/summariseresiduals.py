@@ -56,6 +56,8 @@ if __name__ == '__main__':
 
     parser.add_argument('-c', '--chains', type = int, default = -1, help = 'No. chains (at T = 1)')
 
+    parser.add_argument('-t', '--threshold', type = float, default = 3.0, help = 'Outlier threshold')
+
     args = parser.parse_args()
 
     files = []
@@ -91,17 +93,17 @@ if __name__ == '__main__':
     ax.hist(meannr, bins = 50)
 
 
-    indices = numpy.where(numpy.abs(meannr) > 3.0)[0]
+    indices = numpy.where(numpy.abs(meannr) > args.threshold)[0]
+    if len(indices) > 0:
+        t = zip(numpy.abs(meannr[indices]), indices)
+        t.sort()
+        _, sindices = zip(*t)
 
-    t = zip(numpy.abs(meannr[indices]), indices)
-    t.sort()
-    _, sindices = zip(*t)
-
-    print 'Outliers'
-    print '-' * 60
-    for i in sindices:
-        print '%20s %20s %10.6f' % (A[i], B[i], meannr[i])
-    print '-' * 60
+        print 'Outliers'
+        print '-' * 60
+        for i in sindices:
+            print '%20s %20s %10.6f' % (A[i], B[i], meannr[i])
+        print '-' * 60
 
     print 'Mean Normed Residual: %16.9e' % numpy.mean(meannr)
     print 'Std. Dev            : %16.9e (%d)' % (numpy.std(meannr), ndata)
