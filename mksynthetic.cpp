@@ -563,11 +563,15 @@ int main(int argc, char *argv[])
     double minfreq = obs->get_frequency(0);
     double maxfreq = obs->get_frequency(obs->get_frequency_count() - 1);
 
+    if (obs->get_frequency_count() == 1) {
+      maxfreq = minfreq + 0.1;
+    }
+
       
     for (int k = 0; k < depth; k ++) {
       double f = obs->get_frequency(k);
       double nf = (f - minfreq)/(maxfreq - minfreq);
-      
+
       for (int j = 0; j < height; j ++) {
 	
 	double nlat = ((double)j + 0.5)/(double)height;
