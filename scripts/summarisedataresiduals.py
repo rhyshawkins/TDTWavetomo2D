@@ -10,39 +10,6 @@ import matplotlib.pyplot as P
 
 from mpl_toolkits.basemap import Basemap
 
-def load_residuals(filename):
-
-    #
-    # Residuals file has columns:
-    #
-    # 0 Station A
-    # 1 Station B
-    # 2 Distance km
-    # 3 Raw Mean Residual
-    # 4 Observered Velocity (to compare to raw)
-    # 5 Normalised Mean Residual (should be N(0, 1) distributed)
-    # 6 Mean Travel Time error seconds
-    # 7 Observered Travel Time
-    #
-    
-
-    f = open(filename, 'r')
-    lines = f.readlines()
-    f.close()
-
-    data = []
-    
-    for line in lines:
-        t = line.split()
-        
-        A = t[0]
-        B = t[1]
-        nr = float(t[5])
-
-        data.append((A, B, nr))
-
-    return data
-
 def filter_files(files, chains):
     if chains <= 0:
         return files
@@ -50,32 +17,71 @@ def filter_files(files, chains):
     else:
         return filter(lambda x: int(x[-3:]) < chains, files)
 
-def load_stations(filename):
+def load_observations(filename):
 
     f = open(filename, 'r')
     lines = f.readlines()
     f.close()
 
-    N = int(lines[0])
-
+    offset = 1
+    nstations = int(lines[0])
     stations = {}
-    lons = []
-    lats = []
-    for i in range(N):
-        t = lines[i + 1].split()
-
+    for i in range(nstations):
+        t = lines[offset].split()
         name = t[0]
         lon = float(t[1])
         lat = float(t[2])
 
         stations[name] = (lon, lat)
+        offset = offset + 1
 
-        lons.append(lon)
-        lats.append(lat)
+    nfreq = int(lines[offset])
+    offset = offset + 1
+    if nfreq != 1:
+        raise Exception('No. frequencies must be 1 for this script.')
 
+    freq = float(lines[offset])
+    offset = offset + 1
+
+    # Don't care about traces
+    ntraces = int(lines[offset])
+    offset = offset + 1 + ntraces
+
+    nobs = int(lines[offset])
+    offset = offset + 1
+
+    data = []
     
+    for i in range(nobs):
 
-    return stations, min(lons), max(lons), min(lats), max(lats)
+        t = lines[offset].split()
+        A = t[0]
+        B = t[1]
+        distkm = float(t[2])
+        
+        mean, median, mode, err = map(float, lines[offset + 1].split())
+
+        data.append((A, B, distkm, mean, median, mode, err))
+
+        offset = offset + 2
+
+    return freq, stations, data
+
+def stationrange(stations):
+
+    minlon = 180.0
+    maxlon = -180.0
+    minlat = 90.0
+    maxlat = -90.0
+
+    for _, (lon, lat) in stations.items():
+
+        minlon = min([minlon, lon])
+        maxlon = max([maxlon, lon])
+        minlat = min([minlat, lat])
+        maxlat = max([maxlat, lat])
+
+    return minlon, maxlon, minlat, maxlat
 
 if __name__ == '__main__':
 
@@ -83,79 +89,56 @@ if __name__ == '__main__':
 
     parser.add_argument('-i', '--input', type = str, required = True, help = 'Input file(s)')
 
-    parser.add_argument('-c', '--chains', type = int, default = -1, help = 'No. chains (at T = 1)')
-
     parser.add_argument('-t', '--threshold', type = float, default = 3.0, help = 'Outlier threshold')
-
-    parser.add_argument('-d', '--data', type = str, default = None, help = 'Plot stations')
 
     args = parser.parse_args()
 
-    files = []
-    if os.path.exists(args.input):
-        files = [args.input]
-    else:
-        files = filter_files(glob.glob(args.input + '-???'), args.chains)
-        
-        
+    _, stations, data = load_observations(args.input)
 
-    if len(files) == 0:
-        print 'No files'
-        sys.exit(-1)
+    A, B, distkm, mean, _, _, err = zip(*data)
 
-    A, B, nr = zip(*load_residuals(files[0]))
-    nr = numpy.array(nr)
-    ndata = nr.size
-    gnr = numpy.zeros((len(files), ndata))
-    gnr[0, :] = nr
+    vmean = numpy.mean(mean)
+
+    res = (numpy.array(mean) - vmean)/numpy.array(err)
     
-    for i, f in enumerate(files[1:]):
-
-        _, _, nri = zip(*load_residuals(files[0]))
-
-        gnr[i + 1, :] = numpy.array(nri)
-        
-
-    
-    meannr = numpy.mean(gnr, axis = 0)
-
     fig, ax = P.subplots()
 
-    ax.hist(meannr, bins = 50)
+    ax.hist(res, bins = 50)
 
 
-    indices = numpy.where(numpy.abs(meannr) > args.threshold)[0]
+    indices = numpy.where(numpy.abs(res) > args.threshold)[0]
     if len(indices) > 0:
-        t = zip(numpy.abs(meannr[indices]), indices)
+        t = zip(numpy.abs(res[indices]), indices)
         t.sort()
         _, sindices = zip(*t)
 
         print 'Outliers'
         print '-' * 60
         for i in sindices:
-            print '%20s %20s %10.6f' % (A[i], B[i], meannr[i])
+            print '%20s %20s %10.6f' % (A[i], B[i], res[i])
         print '-' * 60
 
-    print 'Mean Normed Residual: %16.9e' % numpy.mean(meannr)
-    print 'Std. Dev            : %16.9e (%d)' % (numpy.std(meannr), ndata)
+    ndata = len(A)
+    print 'Mean Normed Residual: %16.9e' % numpy.mean(res)
+    print 'Std. Dev            : %16.9e (%d)' % (numpy.std(res), ndata)
 
     print '%19s : %10s : %10s' % ('Threshold', 'Count', 'Expected')
     print '%19.3f : %10d : %10.6f' % (3.0,
-                                      numpy.where(numpy.abs(meannr) > 3.0)[0].size,
+                                      numpy.where(numpy.abs(res) > 3.0)[0].size,
                                       float(ndata) / 370.398)
     
     print '%19.3f : %10d : %10.6f' % (3.291,
-                                      numpy.where(numpy.abs(meannr) > 3.290527)[0].size,
+                                      numpy.where(numpy.abs(res) > 3.290527)[0].size,
                                       float(ndata) / 1000.0)
 
     print '%19.3f : %10d : %10.6f' % (4.0,
-                                      numpy.where(numpy.abs(meannr) > 4.0)[0].size,
+                                      numpy.where(numpy.abs(res) > 4.0)[0].size,
                                       float(ndata) / 15787.0)
 
-    if len(indices) > 0 and (not (args.data is None)):
+    if len(indices) > 0:
 
-        stations, minlon, maxlon, minlat, maxlat = load_stations(args.data)
-
+        minlon, maxlon, minlat, maxlat = stationrange(stations)
+        
         dlon = 0.10 * (maxlon - minlon)
         minlon = minlon - dlon
         maxlon = maxlon + dlon
@@ -189,7 +172,7 @@ if __name__ == '__main__':
             unique_stations[A[i]] = (lon0, lat0)
             unique_stations[B[i]] = (lon1, lat1)
 
-            if meannr[i] < 0.0:
+            if res[i] < 0.0:
                 m.drawgreatcircle(lon0, lat0, lon1, lat1, color = 'red', zorder = 50)
             else:
                 m.drawgreatcircle(lon0, lat0, lon1, lat1, color = 'blue', zorder = 50)
